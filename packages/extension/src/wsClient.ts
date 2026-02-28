@@ -7,6 +7,7 @@ import {
   ExtensionStatus,
   SendMessageCommand,
   FileEditCommand,
+  RequestSessionCommand,
   WsMessage,
   createMessage,
 } from "@remote-pilot/shared";
@@ -32,7 +33,7 @@ export class WsClient {
   private reconnectDelay = 1000;
   private pingInterval: NodeJS.Timeout | null = null;
   private onMessageHandler?: MessageHandler;
-
+  private requestSessionHandler?: (sessionId: string) => Promise<boolean>;
   constructor(serverPort: number, serverToken: string, role = "extension") {
     this.serverPort = serverPort;
     this.serverToken = serverToken;
@@ -99,6 +100,10 @@ export class WsClient {
     this.onMessageHandler = handler;
   }
 
+
+  onRequestSession(handler: (sessionId: string) => Promise<boolean>): void {
+    this.requestSessionHandler = handler;
+  }
   send(message: WsMessage): void {
     if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
       return;
@@ -199,6 +204,16 @@ export class WsClient {
       case "new_chat_session": {
         const result = await newChatSession();
         ack = { requestId: message.id, success: result.success, error: result.error };
+        break;
+      }
+      case "request_session": {
+        const data = message.data as RequestSessionCommand;
+        if (this.requestSessionHandler) {
+          const found = await this.requestSessionHandler(data.sessionId);
+          ack = { requestId: message.id, success: found, error: found ? undefined : "Session not found" };
+        } else {
+          ack = { requestId: message.id, success: false, error: "No session handler registered" };
+        }
         break;
       }
       default:

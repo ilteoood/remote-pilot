@@ -183,20 +183,34 @@ async function startRemotePilot(): Promise<void> {
     bar.text = "$(loading~spin) Remote Pilot";
 
     serverInfo = await spawnServer();
-
     wsClient = new WsClient(serverInfo.port, serverInfo.token);
     wsClient.connect();
-
     chatWatcher = new ChatWatcher({
       onSessionsList: (list) => wsClient?.sendChatSessionsList(list),
       onSessionUpdate: (update) => wsClient?.sendChatSessionUpdate(update),
       onEditingState: (state) => wsClient?.sendChatEditingState(state),
     });
+
+    // Wire up request_session: when web client requests a session, chatWatcher reads it from disk
+    wsClient.onRequestSession((sessionId) => {
+      if (!chatWatcher) {
+        return Promise.resolve(false);
+      }
+      return chatWatcher.emitSessionById(sessionId);
+    });
+
     await chatWatcher.start();
 
     updateStatus(true);
+
+    // Copy pairing code to clipboard
+    await vscode.env.clipboard.writeText(serverInfo.pairingCode);
+
+    // Auto-open web page in browser
+    const webUrl = `http://localhost:${serverInfo.port}`;
+    await vscode.env.openExternal(vscode.Uri.parse(webUrl));
     vscode.window.showInformationMessage(
-      `Remote Pilot started. Pairing code: ${serverInfo.pairingCode}`,
+      `Remote Pilot started. Pairing code: ${serverInfo.pairingCode} (copied to clipboard)`,
     );
   } catch (err) {
     killServer();
@@ -234,10 +248,11 @@ export function activate(context: vscode.ExtensionContext): void {
 
   const showPairingCodeCommand = vscode.commands.registerCommand(
     "remote-pilot.showPairingCode",
-    () => {
+    async () => {
       if (serverInfo) {
+        await vscode.env.clipboard.writeText(serverInfo.pairingCode);
         vscode.window.showInformationMessage(
-          `Remote Pilot pairing code: ${serverInfo.pairingCode}`,
+          `Remote Pilot pairing code: ${serverInfo.pairingCode} (copied to clipboard)`,
         );
       } else {
         vscode.window.showWarningMessage("Remote Pilot is not running. Start it first.");

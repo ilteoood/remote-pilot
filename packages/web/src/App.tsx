@@ -28,6 +28,23 @@ export const App: React.FC = () => {
       setLocalActiveSessionId(extensionStatus.activeSessionId);
     }
   }, [activeSession, extensionStatus]);
+  // Auto-select first session when sessions list arrives and nothing is selected
+  useEffect(() => {
+    if (!localActiveSessionId && sessionsList?.sessions?.length) {
+      const first = sessionsList.sessions[0];
+      setLocalActiveSessionId(first.sessionId);
+    }
+  }, [sessionsList, localActiveSessionId]);
+
+  // When localActiveSessionId changes, request session data from extension
+  useEffect(() => {
+    if (localActiveSessionId && isPaired) {
+      // Only request if we don't already have this session's data
+      if (!activeSession || activeSession.sessionId !== localActiveSessionId) {
+        send('request_session', { sessionId: localActiveSessionId });
+      }
+    }
+  }, [localActiveSessionId, isPaired]);
 
   const handlePair = (code: string) => {
     setPairingError(undefined);
@@ -99,11 +116,7 @@ export const App: React.FC = () => {
       hasPendingEdits={hasPendingEdits}
       onSelectSession={(id) => {
         setLocalActiveSessionId(id);
-        // Note: The protocol doesn't seem to have a "switch session" command 
-        // that doesn't involve sending a message. 
-        // We might just be viewing the last known state until we send a message.
-        // Or maybe we should trigger a "refresh" if the protocol supported it.
-        // For now, we just update local state to highlight it.
+        // request_session is sent via the useEffect above when localActiveSessionId changes
       }}
       onNewSession={handleNewSession}
       onSendMessage={handleSendMessage}

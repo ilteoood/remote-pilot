@@ -39,6 +39,7 @@ export type WsMessageType =
   | "continue_iteration"
   | "cancel_request"
   | "new_chat_session"
+  | "request_session"
   // Command acknowledgement (extension → server → web)
   | "command_ack"
   // Connection state
@@ -69,6 +70,7 @@ export interface WsMessageDataMap {
   continue_iteration: EmptyPayload;
   cancel_request: EmptyPayload;
   new_chat_session: EmptyPayload;
+  request_session: RequestSessionCommand;
 
   // Ack
   command_ack: CommandAck;
@@ -173,6 +175,11 @@ export interface SendMessageCommand {
 /** Web → Extension: accept/reject a specific file edit */
 export interface FileEditCommand {
   filePath: string;
+}
+
+/** Web → Extension: request a specific session's content */
+export interface RequestSessionCommand {
+  sessionId: string;
 }
 
 /** Extension → Web: acknowledge a command was received and processed */

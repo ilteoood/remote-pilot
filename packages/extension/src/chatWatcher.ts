@@ -56,6 +56,41 @@ export class ChatWatcher {
     await this.emitSessionsList();
   }
 
+  /**
+   * Emit a specific session's content by its ID.
+   * Used when the web client requests a particular session.
+   */
+  async emitSessionById(sessionId: string): Promise<boolean> {
+    if (!this.sessionsDir) {
+      return false;
+    }
+    try {
+      const files = await fs.promises.readdir(this.sessionsDir);
+      for (const file of files) {
+        if (!file.endsWith(".json")) {
+          continue;
+        }
+        const fullPath = path.join(this.sessionsDir, file);
+        try {
+          const raw = await fs.promises.readFile(fullPath, "utf-8");
+          const parsed = JSON.parse(raw) as VscodeChatSessionFile;
+          if (parsed.sessionId === sessionId) {
+            const update = this.toChatSessionUpdate(parsed);
+            if (this.callbacks.onSessionUpdate) {
+              this.callbacks.onSessionUpdate(update);
+            }
+            return true;
+          }
+        } catch {
+          continue;
+        }
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
   stop(): void {
     this.disposeWatcher(this.sessionWatcher);
     this.disposeWatcher(this.editingWatcher);
