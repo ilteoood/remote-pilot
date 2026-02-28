@@ -1,0 +1,67 @@
+{
+  "name": "@remote-pilot/extension",
+  "displayName": "Remote Pilot",
+  "description": "Remotely monitor and interact with VS Code Copilot chat sessions",
+  "version": "0.0.1",
+  "private": true,
+  "publisher": "remote-pilot",
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "remote-pilot.start",
+        "title": "Remote Pilot: Start Server"
+      },
+      {
+        "command": "remote-pilot.stop",
+        "title": "Remote Pilot: Stop Server"
+      },
+      {
+        "command": "remote-pilot.showPairingCode",
+        "title": "Remote Pilot: Show Pairing Code"
+      }
+    ],
+    "configuration": {
+      "title": "Remote Pilot",
+      "properties": {
+        "remotePilot.serverPort": {
+          "type": "number",
+          "default": 3847,
+          "description": "Port for the Remote Pilot server"
+        },
+        "remotePilot.autoStart": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically start the server when VS Code opens"
+        },
+        "remotePilot.allowLan": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allow connections from LAN (not just localhost)"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "prepackage": "mkdir -p dist/server && cp ../server/dist/index.js dist/server/index.js",
+    "package": "pnpm build && pnpm prepackage && vsce package --no-dependencies",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@remote-pilot/shared": "workspace:*",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.96.0",
+    "@types/ws": "^8.18.0",
+    "tsup": "^8.4.0",
+    "typescript": "^5.8.0"
+  }
+}
