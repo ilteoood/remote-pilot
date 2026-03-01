@@ -65,18 +65,8 @@ function sendMessage(ws: WebSocket, message: AnyWsMessage): void {
   ws.send(JSON.stringify(message));
 }
 
-function cloneMessage(message: AnyWsMessage): AnyWsMessage {
-  return {
-    version: message.version,
-    id: message.id,
-    type: message.type,
-    data: message.data,
-    timestamp: message.timestamp,
-  } as AnyWsMessage;
-}
-
 export function broadcastToWeb(message: AnyWsMessage): void {
-  const outbound = cloneMessage(message);
+  const outbound = structuredClone(message);
   for (const socket of sockets) {
     const info = getClientInfo(socket);
     if (!info || info.role !== "web" || !info.paired || !info.token) continue;
@@ -91,7 +81,7 @@ export function forwardToExtension(message: AnyWsMessage): void {
     console.warn("Extension not connected; dropping message.");
     return;
   }
-  const outbound = cloneMessage(message);
+  const outbound = structuredClone(message);
   sendMessage(extensionSocket, outbound);
 }
 
