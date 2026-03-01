@@ -1,14 +1,20 @@
 {
-  "name": "@remote-pilot/extension",
+  "name": "remote-pilot",
   "displayName": "Remote Pilot",
   "description": "Remotely monitor and interact with VS Code Copilot chat sessions",
   "version": "0.0.1",
   "private": true,
   "publisher": "remote-pilot",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ilteoood/remote-pilot.git"
+  },
   "engines": {
     "vscode": "^1.96.0"
   },
-  "categories": ["Other"],
+  "categories": [
+    "Other"
+  ],
   "activationEvents": [],
   "main": "./dist/extension.js",
   "contributes": {
@@ -62,6 +68,7 @@
     "@types/vscode": "^1.96.0",
     "@types/ws": "^8.18.0",
     "tsup": "^8.4.0",
-    "typescript": "^5.8.0"
+    "typescript": "^5.8.0",
+    "@vscode/vsce": "^3.7.1"
   }
 }

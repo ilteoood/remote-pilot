@@ -1,0 +1,11 @@
+.turbo
+node_modules
+src
+tsconfig.json
+tsup.config.ts
+*.ts
+!*.d.ts
+.gitignore
+.vscode
+.DS_Store
+*.log
