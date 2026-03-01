@@ -1,9 +1,8 @@
 import express from "express";
+import crypto from "node:crypto";
 import http from "node:http";
 import path from "node:path";
-import crypto from "node:crypto";
 
-import { WebSocket, WebSocketServer } from "ws";
 import {
   PROTOCOL_VERSION,
   WsMessage,
@@ -11,6 +10,7 @@ import {
   WsMessageType,
   createMessage,
 } from "@remote-pilot/shared";
+import { WebSocket, WebSocketServer } from "ws";
 
 type AnyWsMessage = { [K in WsMessageType]: WsMessage<K> }[WsMessageType];
 
@@ -82,9 +82,7 @@ let extensionSocket: WebSocket | null = null;
 app.get("/health", (_req, res) => {
   res.json({
     status: "ok",
-    extensionConnected:
-      extensionSocket !== null &&
-      extensionSocket.readyState === WebSocket.OPEN,
+    extensionConnected: extensionSocket?.readyState === WebSocket.OPEN,
   });
 });
 
