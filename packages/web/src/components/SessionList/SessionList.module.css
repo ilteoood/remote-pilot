@@ -1,0 +1,83 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 280px;
+  border-right: 1px solid var(--border-subtle);
+  background: var(--bg-panel);
+  flex-shrink: 0;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-md);
+}
+
+.title {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.newButton {
+  color: var(--accent-primary);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.sessionList {
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+.emptyState {
+  padding: var(--space-md);
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.sessionItem {
+  padding: 12px var(--space-md);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sessionItemActive {
+  background: var(--bg-panel-hover);
+  border-left: 2px solid var(--accent-primary);
+}
+
+.sessionItemInactive {
+  background: transparent;
+  border-left: 2px solid transparent;
+}
+
+.sessionTitle {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+  font-size: 14px;
+}
+
+.sessionTitleActive {
+  font-weight: 600;
+}
+
+.sessionTitleInactive {
+  font-weight: 400;
+}
+
+.pendingIndicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-warning);
+  margin-top: 4px;
+}
+
+.sessionDate {
+  font-size: 11px;
+  color: var(--text-dim);
+}

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { ChatSessionUpdate } from '@remote-pilot/shared';
-import { MessageBubble } from './MessageBubble';
+import { MessageBubble } from '../MessageBubble/MessageBubble';
+import styles from './ChatView.module.css';
 
 interface ChatViewProps {
   session: ChatSessionUpdate | null;
@@ -15,8 +16,8 @@ export const ChatView: React.FC<ChatViewProps> = ({ session }) => {
 
   if (!session) {
     return (
-      <div className="flex justify-center items-center h-full text-dim">
-        <div style={{ color: 'var(--text-dim)', textAlign: 'center' }}>
+      <div className={styles.emptyState}>
+        <div className={styles.emptyContent}>
           <h3>No Session Selected</h3>
           <p>Select a chat or start a new one.</p>
         </div>
@@ -25,7 +26,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ session }) => {
   }
 
   return (
-    <div className="h-full" style={{ overflowY: 'auto', padding: 'var(--space-md)' }}>
+    <div className={styles.container}>
       {session.requests.map((req) => (
         <React.Fragment key={req.requestId}>
           <MessageBubble role="user" content={req.message} />

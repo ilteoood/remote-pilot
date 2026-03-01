@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ChatResponsePart } from '@remote-pilot/shared';
+import styles from './MessageBubble.module.css';
 
 interface MessageBubbleProps {
   role: 'user' | 'assistant';
@@ -13,20 +14,14 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ role, content, par
   const isUser = role === 'user';
   
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}>
+    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} ${styles.container}`}>
       <div 
-        style={{
-          maxWidth: '85%',
-          background: isUser ? 'var(--bg-panel-hover)' : 'transparent',
-          border: isUser ? '1px solid var(--border-subtle)' : 'none',
-          borderRadius: '8px',
-          padding: isUser ? '12px 16px' : '0',
-        }}
+        className={`${styles.bubble} ${isUser ? styles.bubbleUser : styles.bubbleAssistant}`}
       >
         {isUser ? (
-          <div style={{ whiteSpace: 'pre-wrap' }}>{content}</div>
+          <div className={styles.userContent}>{content}</div>
         ) : (
-          <div className="flex flex-col gap-sm">
+          <div className={styles.responseContainer}>
             {parts?.map((part, idx) => (
               <ResponsePart key={idx} part={part} />
             ))}
@@ -54,12 +49,7 @@ const ResponsePart: React.FC<{ part: ChatResponsePart }> = ({ part }) => {
   
   if (part.kind === 'code_citation') {
     return (
-      <div style={{ 
-        fontSize: '0.8em', 
-        color: 'var(--text-secondary)',
-        borderLeft: '2px solid var(--border-subtle)',
-        paddingLeft: '8px'
-      }}>
+      <div className={styles.citation}>
         Citation: {part.content}
       </div>
     );
@@ -71,53 +61,39 @@ const ResponsePart: React.FC<{ part: ChatResponsePart }> = ({ part }) => {
 const ToolInvocation: React.FC<{ part: ChatResponsePart }> = ({ part }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   
-  let statusColor = 'var(--text-secondary)';
   let statusIcon = '○';
+  let statusClass = styles.statusDefault;
   
   if (part.toolStatus === 'running') {
-    statusColor = 'var(--accent-warning)';
-    statusIcon = '●'; // Should animate ideally
+    statusIcon = '●';
+    statusClass = styles.statusRunning;
   } else if (part.toolStatus === 'completed') {
-    statusColor = 'var(--accent-success)';
     statusIcon = '✓';
+    statusClass = styles.statusCompleted;
   } else if (part.toolStatus === 'failed') {
-    statusColor = 'var(--accent-error)';
     statusIcon = '✕';
+    statusClass = styles.statusFailed;
   }
 
   return (
-    <div style={{
-      border: '1px solid var(--border-subtle)',
-      borderRadius: '4px',
-      background: 'var(--bg-panel)',
-      overflow: 'hidden',
-      margin: '4px 0'
-    }}>
+    <div className={styles.toolContainer}>
       <div 
-        className="flex items-center justify-between p-2 cursor-pointer hover:bg-white/5"
-        style={{ padding: '8px 12px' }}
+        className={styles.toolHeader}
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <div className="flex items-center gap-sm">
-          <span style={{ color: statusColor, fontWeight: 'bold' }}>{statusIcon}</span>
-          <span style={{ fontWeight: 600, fontSize: '0.9em' }}>
+        <div className={styles.toolInfo}>
+          <span className={`${styles.statusIcon} ${statusClass}`}>{statusIcon}</span>
+          <span className={styles.toolName}>
             {part.toolName || 'Tool'}
           </span>
         </div>
-        <div style={{ fontSize: '0.8em', color: 'var(--text-secondary)' }}>
+        <div className={styles.toggleText}>
           {isExpanded ? 'Hide' : 'Show'}
         </div>
       </div>
       
       {isExpanded && (
-        <div style={{ 
-          padding: '8px 12px', 
-          borderTop: '1px solid var(--border-subtle)',
-          fontSize: '0.9em',
-          background: 'rgba(0,0,0,0.2)',
-          whiteSpace: 'pre-wrap',
-          fontFamily: 'var(--font-mono)'
-        }}>
+        <div className={styles.toolContent}>
           {part.content}
         </div>
       )}

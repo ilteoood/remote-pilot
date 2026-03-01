@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { SessionList } from './SessionList';
-import { ChatView } from './ChatView';
-import { ActionBar } from './ActionBar';
-import { StatusIndicator } from './StatusIndicator';
+import { SessionList } from '../SessionList/SessionList';
+import { ChatView } from '../ChatView/ChatView';
+import { ActionBar } from '../ActionBar/ActionBar';
+import { StatusIndicator } from '../StatusIndicator/StatusIndicator';
 import { ChatSessionUpdate, ChatSessionsList, ExtensionStatus } from '@remote-pilot/shared';
+import styles from './ChatLayout.module.css';
 
 interface ChatLayoutProps {
   sessions: ChatSessionsList | null;
@@ -39,25 +40,18 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
   const [showSidebar, setShowSidebar] = useState(false);
 
   return (
-    <div className="flex h-full w-full relative">
+    <div className={styles.container}>
       {/* Mobile Sidebar Toggle */}
       <button 
-        className="fixed top-4 left-4 z-50 md:hidden"
+        className={styles.mobileToggle}
         onClick={() => setShowSidebar(!showSidebar)}
-        style={{
-          background: 'var(--bg-panel)',
-          padding: '8px',
-          borderRadius: '4px',
-          border: '1px solid var(--border-subtle)'
-        }}
       >
         ☰
       </button>
 
       {/* Sidebar */}
       <div 
-        className={`h-full absolute md:relative z-40 transition-transform transform ${showSidebar ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
-        style={{ background: 'var(--bg-dark)' }}
+        className={`${styles.sidebar} ${showSidebar ? styles.sidebarOpen : styles.sidebarClosed}`}
       >
         <SessionList 
           sessions={sessions}
@@ -71,14 +65,10 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
       </div>
 
       {/* Main Content */}
-      <div className="flex flex-col grow h-full relative" style={{ overflow: 'hidden' }}>
+      <div className={styles.mainContent}>
         {/* Header */}
-        <div className="flex justify-between items-center" style={{
-          padding: 'var(--space-md)',
-          borderBottom: '1px solid var(--border-subtle)',
-          background: 'var(--bg-panel)'
-        }}>
-          <h1 style={{ fontSize: '16px', marginLeft: '40px' }}>
+        <div className={styles.header}>
+          <h1 className={styles.title}>
             {activeSessionId ? 'Chat' : 'Remote Pilot'}
           </h1>
           <StatusIndicator 
@@ -89,7 +79,7 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
         </div>
 
         {/* Chat Area */}
-        <div className="grow" style={{ overflow: 'hidden' }}>
+        <div className={styles.chatArea}>
           <ChatView session={activeSession} />
         </div>
 
@@ -107,7 +97,7 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
       {/* Overlay for mobile sidebar */}
       {showSidebar && (
         <div 
-          className="fixed inset-0 z-30 bg-black/50 md:hidden"
+          className={styles.overlay}
           onClick={() => setShowSidebar(false)}
         />
       )}

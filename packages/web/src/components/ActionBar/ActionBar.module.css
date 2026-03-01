@@ -1,0 +1,64 @@
+.container {
+  padding: var(--space-md);
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-panel);
+}
+
+.editActions {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.editButtons {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.acceptButton {
+  background: var(--accent-success);
+  color: #000;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.rejectButton {
+  background: var(--accent-error);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.continueButton {
+  border: 1px solid var(--accent-primary);
+  color: var(--accent-primary);
+  padding: 8px 16px;
+  border-radius: 4px;
+}
+
+.disabled {
+  opacity: 0.5;
+}
+
+.inputContainer {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+.messageInput {
+  padding: 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  flex-grow: 1;
+}
+
+.sendButton {
+  background: var(--accent-primary);
+  color: #000;
+  padding: 12px 20px;
+  border-radius: 4px;
+  font-weight: 700;
+}

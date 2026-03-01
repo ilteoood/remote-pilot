@@ -1,4 +1,5 @@
 import React, { useState, KeyboardEvent } from 'react';
+import styles from './ActionBar.module.css';
 
 interface ActionBarProps {
   onSendMessage: (text: string) => void;
@@ -34,39 +35,21 @@ export const ActionBar: React.FC<ActionBarProps> = ({
   };
 
   return (
-    <div className="flex flex-col gap-sm" style={{ 
-      padding: 'var(--space-md)', 
-      borderTop: '1px solid var(--border-subtle)',
-      background: 'var(--bg-panel)' 
-    }}>
+    <div className={`flex flex-col gap-sm ${styles.container}`}>
       {hasPendingEdits && (
-        <div className="flex justify-between gap-sm">
-          <div className="flex gap-sm">
+        <div className={styles.editActions}>
+          <div className={styles.editButtons}>
             <button
               onClick={onAcceptAll}
               disabled={disabled}
-              style={{
-                background: 'var(--accent-success)',
-                color: '#000',
-                padding: '8px 16px',
-                borderRadius: '4px',
-                fontWeight: 600,
-                opacity: disabled ? 0.5 : 1
-              }}
+              className={`${styles.acceptButton} ${disabled ? styles.disabled : ''}`}
             >
               Accept All
             </button>
             <button
               onClick={onRejectAll}
               disabled={disabled}
-              style={{
-                background: 'var(--accent-error)',
-                color: '#fff',
-                padding: '8px 16px',
-                borderRadius: '4px',
-                fontWeight: 600,
-                opacity: disabled ? 0.5 : 1
-              }}
+              className={`${styles.rejectButton} ${disabled ? styles.disabled : ''}`}
             >
               Reject All
             </button>
@@ -74,20 +57,14 @@ export const ActionBar: React.FC<ActionBarProps> = ({
           <button
             onClick={onContinue}
             disabled={disabled}
-            style={{
-              border: '1px solid var(--accent-primary)',
-              color: 'var(--accent-primary)',
-              padding: '8px 16px',
-              borderRadius: '4px',
-              opacity: disabled ? 0.5 : 1
-            }}
+            className={`${styles.continueButton} ${disabled ? styles.disabled : ''}`}
           >
             Continue
           </button>
         </div>
       )}
 
-      <div className="flex gap-sm items-center">
+      <div className={styles.inputContainer}>
         <input
           type="text"
           value={input}
@@ -95,24 +72,12 @@ export const ActionBar: React.FC<ActionBarProps> = ({
           onKeyDown={handleKeyDown}
           placeholder="Ask Copilot..."
           disabled={disabled}
-          className="grow"
-          style={{
-            padding: '12px',
-            borderRadius: '4px',
-            fontSize: '14px'
-          }}
+          className={`grow ${styles.messageInput}`}
         />
         <button
           onClick={handleSend}
           disabled={!input.trim() || disabled}
-          style={{
-            background: 'var(--accent-primary)',
-            color: '#000',
-            padding: '12px 20px',
-            borderRadius: '4px',
-            fontWeight: 700,
-            opacity: (!input.trim() || disabled) ? 0.5 : 1
-          }}
+          className={`${styles.sendButton} ${(!input.trim() || disabled) ? styles.disabled : ''}`}
         >
           SEND
         </button>

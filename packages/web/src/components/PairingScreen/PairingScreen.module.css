@@ -1,0 +1,60 @@
+.wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+  background: var(--bg-dark);
+}
+
+.card {
+  padding: var(--space-xl);
+  background: var(--bg-panel);
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.title {
+  margin-bottom: var(--space-lg);
+  color: var(--accent-primary);
+}
+
+.description {
+  margin-bottom: var(--space-md);
+  color: var(--text-secondary);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.codeInput {
+  font-size: 24px;
+  text-align: center;
+  letter-spacing: 4px;
+  padding: 12px;
+  text-transform: uppercase;
+  font-family: var(--font-mono);
+}
+
+.error {
+  color: var(--accent-error);
+  font-size: 14px;
+}
+
+.submitButton {
+  background: var(--accent-primary);
+  color: #000;
+  padding: 12px;
+  font-weight: 700;
+  border-radius: 4px;
+}
+
+.submitButton:disabled {
+  opacity: 0.5;
+}

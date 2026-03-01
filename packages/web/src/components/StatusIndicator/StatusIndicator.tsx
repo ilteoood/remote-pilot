@@ -1,5 +1,6 @@
 import React from 'react';
 import { ExtensionStatus } from '@remote-pilot/shared';
+import styles from './StatusIndicator.module.css';
 
 interface StatusIndicatorProps {
   isConnected: boolean;
@@ -12,33 +13,26 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = ({
   isPaired,
   extensionStatus,
 }) => {
-  let color = 'var(--accent-error)';
+  let statusClass = styles.statusDisconnected;
   let title = 'Disconnected';
 
   if (isConnected && isPaired) {
     if (extensionStatus?.connected) {
-      color = 'var(--accent-success)';
+      statusClass = styles.statusConnected;
       title = 'Connected to Extension';
     } else {
-      color = 'var(--accent-warning)';
+      statusClass = styles.statusWarning;
       title = 'Web Connected, Extension Disconnected';
     }
   } else if (isConnected) {
-    color = 'var(--accent-warning)';
+    statusClass = styles.statusWarning;
     title = 'Web Connected, Not Paired';
   }
 
   return (
     <div
       title={title}
-      style={{
-        width: 10,
-        height: 10,
-        borderRadius: '50%',
-        backgroundColor: color,
-        boxShadow: `0 0 5px ${color}`,
-        transition: 'background-color 0.3s ease',
-      }}
+      className={`${styles.indicator} ${statusClass}`}
     />
   );
 };
