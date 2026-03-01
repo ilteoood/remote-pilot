@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
 import { ChatSessionsList, ChatSessionSummary } from '@remote-pilot/shared';
 import styles from './SessionList.module.css';
@@ -16,14 +17,16 @@ export const SessionList: React.FC<SessionListProps> = ({
   onSelectSession, 
   onNewSession 
 }) => {
+  const { t } = useTranslation();
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h2 className={styles.title}>Sessions</h2>
+        <h2 className={styles.title}>{t('sessionList.sessions')}</h2>
         <button 
           onClick={onNewSession}
           className={styles.newButton}
-          title="New Session"
+          title={t('sessionList.newSession')}
         >
           +
         </button>
@@ -40,7 +43,7 @@ export const SessionList: React.FC<SessionListProps> = ({
         ))}
         {(!sessions || sessions.sessions.length === 0) && (
           <div className={styles.emptyState}>
-            No sessions found.
+            {t('sessionList.noSessions')}
           </div>
         )}
       </div>
@@ -53,6 +56,8 @@ const SessionItem: React.FC<{
   isActive: boolean; 
   onClick: () => void;
 }> = ({ session, isActive, onClick }) => {
+  const { t } = useTranslation();
+
   return (
     <div 
       onClick={onClick}
@@ -60,7 +65,7 @@ const SessionItem: React.FC<{
     >
       <div className="flex justify-between items-start mb-1">
         <div className={clsx(styles.sessionTitle, isActive ? styles.sessionTitleActive : styles.sessionTitleInactive)}>
-          {session.title || 'Untitled Session'}
+          {session.title || t('sessionList.untitled')}
         </div>
         {session.hasPendingEdits && (
           <div className={styles.pendingIndicator} />

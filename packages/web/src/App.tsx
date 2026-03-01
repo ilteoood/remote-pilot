@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import styles from './App.module.css';
 import { ChatLayout } from './components/ChatLayout/ChatLayout';
 import { PairingScreen } from './components/PairingScreen/PairingScreen';
@@ -6,6 +7,7 @@ import { useWebSocket } from './hooks/useWebSocket';
 import './styles/global.css';
 
 export const App: React.FC = () => {
+  const { t } = useTranslation();
   const {
     isConnected,
     isPaired,
@@ -80,7 +82,7 @@ export const App: React.FC = () => {
   if (!isConnected) {
     return (
       <div className={styles.loadingContainer}>
-        <div className={styles.loadingContent}>Connecting to server...</div>
+        <div className={styles.loadingContent}>{t('app.connecting')}</div>
       </div>
     );
   }

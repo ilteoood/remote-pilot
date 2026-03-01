@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import styles from './PairingScreen.module.css';
 
 interface PairingScreenProps {
@@ -8,6 +9,7 @@ interface PairingScreenProps {
 }
 
 export const PairingScreen: React.FC<PairingScreenProps> = ({ onPair, isConnecting, error }) => {
+  const { t } = useTranslation();
   const [code, setCode] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -20,10 +22,10 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({ onPair, isConnecti
   return (
     <div className={styles.wrapper}>
       <div className={styles.card}>
-        <h1 className={styles.title}>Remote Pilot</h1>
+        <h1 className={styles.title}>{t('pairing.title')}</h1>
         
         <p className={styles.description}>
-          Enter the 6-digit pairing code from your editor.
+          {t('pairing.description')}
         </p>
 
         <form onSubmit={handleSubmit} className={styles.form}>
@@ -31,7 +33,7 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({ onPair, isConnecti
             type="text"
             value={code}
             onChange={(e) => setCode(e.target.value.slice(0, 6).toUpperCase())}
-            placeholder="XXXXXX"
+            placeholder={t('pairing.placeholder')}
             className={styles.codeInput}
             maxLength={6}
             disabled={isConnecting}
@@ -49,7 +51,7 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({ onPair, isConnecti
             disabled={code.length !== 6 || isConnecting}
             className={styles.submitButton}
           >
-            {isConnecting ? 'CONNECTING...' : 'CONNECT'}
+            {isConnecting ? t('pairing.connecting') : t('pairing.connect')}
           </button>
         </form>
       </div>

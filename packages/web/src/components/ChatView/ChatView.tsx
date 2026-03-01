@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ChatSessionUpdate } from '@remote-pilot/shared';
 import { MessageBubble } from '../MessageBubble/MessageBubble';
 import styles from './ChatView.module.css';
@@ -8,6 +9,7 @@ interface ChatViewProps {
 }
 
 export const ChatView: React.FC<ChatViewProps> = ({ session }) => {
+  const { t } = useTranslation();
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -18,8 +20,8 @@ export const ChatView: React.FC<ChatViewProps> = ({ session }) => {
     return (
       <div className={styles.emptyState}>
         <div className={styles.emptyContent}>
-          <h3>No Session Selected</h3>
-          <p>Select a chat or start a new one.</p>
+          <h3>{t('chatView.noSession')}</h3>
+          <p>{t('chatView.selectOrStart')}</p>
         </div>
       </div>
     );

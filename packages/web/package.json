@@ -12,8 +12,10 @@
   "dependencies": {
     "@remote-pilot/shared": "workspace:*",
     "clsx": "^2.1.1",
+    "i18next": "^24.2.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-i18next": "^15.4.1",
     "react-markdown": "^9.0.1",
     "remark-gfm": "^4.0.0"
   },

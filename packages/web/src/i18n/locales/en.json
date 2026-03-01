@@ -1,0 +1,40 @@
+{
+  "app": {
+    "connecting": "Connecting to server..."
+  },
+  "pairing": {
+    "title": "Remote Pilot",
+    "description": "Enter the 6-digit pairing code from your editor.",
+    "placeholder": "XXXXXX",
+    "connect": "CONNECT",
+    "connecting": "CONNECTING..."
+  },
+  "chatLayout": {
+    "chat": "Chat",
+    "remotePilot": "Remote Pilot",
+    "menu": "Menu"
+  },
+  "actionBar": {
+    "acceptAll": "Accept All",
+    "rejectAll": "Reject All",
+    "continue": "Continue",
+    "placeholder": "Ask Copilot...",
+    "send": "SEND"
+  },
+  "sessionList": {
+    "sessions": "Sessions",
+    "newSession": "New Session",
+    "noSessions": "No sessions found.",
+    "untitled": "Untitled Session"
+  },
+  "chatView": {
+    "noSession": "No Session Selected",
+    "selectOrStart": "Select a chat or start a new one."
+  },
+  "status": {
+    "disconnected": "Disconnected",
+    "connectedToExtension": "Connected to Extension",
+    "webConnectedExtensionDisconnected": "Web Connected, Extension Disconnected",
+    "webConnectedNotPaired": "Web Connected, Not Paired"
+  }
+}

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
 import { SessionList } from '../SessionList/SessionList';
 import { ChatView } from '../ChatView/ChatView';
@@ -38,6 +39,7 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
   onRejectAll,
   onContinue,
 }) => {
+  const { t } = useTranslation();
   const [showSidebar, setShowSidebar] = useState(false);
 
   return (
@@ -46,6 +48,7 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
       <button 
         className={styles.mobileToggle}
         onClick={() => setShowSidebar(!showSidebar)}
+        aria-label={t('chatLayout.menu')}
       >
         ☰
       </button>
@@ -70,7 +73,7 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
         {/* Header */}
         <div className={styles.header}>
           <h1 className={styles.title}>
-            {activeSessionId ? 'Chat' : 'Remote Pilot'}
+            {activeSessionId ? t('chatLayout.chat') : t('chatLayout.remotePilot')}
           </h1>
           <StatusIndicator 
             isConnected={isConnected} 

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
 import { ExtensionStatus } from '@remote-pilot/shared';
 import styles from './StatusIndicator.module.css';
@@ -14,20 +15,22 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = ({
   isPaired,
   extensionStatus,
 }) => {
+  const { t } = useTranslation();
+
   let statusClass = styles.statusDisconnected;
-  let title = 'Disconnected';
+  let title = t('status.disconnected');
 
   if (isConnected && isPaired) {
     if (extensionStatus?.connected) {
       statusClass = styles.statusConnected;
-      title = 'Connected to Extension';
+      title = t('status.connectedToExtension');
     } else {
       statusClass = styles.statusWarning;
-      title = 'Web Connected, Extension Disconnected';
+      title = t('status.webConnectedExtensionDisconnected');
     }
   } else if (isConnected) {
     statusClass = styles.statusWarning;
-    title = 'Web Connected, Not Paired';
+    title = t('status.webConnectedNotPaired');
   }
 
   return (
