@@ -1,4 +1,5 @@
 import React from 'react';
+import clsx from 'clsx';
 import { ExtensionStatus } from '@remote-pilot/shared';
 import styles from './StatusIndicator.module.css';
 
@@ -32,7 +33,7 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = ({
   return (
     <div
       title={title}
-      className={`${styles.indicator} ${statusClass}`}
+      className={clsx(styles.indicator, statusClass)}
     />
   );
 };

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import clsx from 'clsx';
 import { SessionList } from '../SessionList/SessionList';
 import { ChatView } from '../ChatView/ChatView';
 import { ActionBar } from '../ActionBar/ActionBar';
@@ -51,7 +52,7 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
 
       {/* Sidebar */}
       <div 
-        className={`${styles.sidebar} ${showSidebar ? styles.sidebarOpen : styles.sidebarClosed}`}
+        className={clsx(styles.sidebar, showSidebar ? styles.sidebarOpen : styles.sidebarClosed)}
       >
         <SessionList 
           sessions={sessions}

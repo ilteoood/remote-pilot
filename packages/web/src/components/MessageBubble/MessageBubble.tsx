@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import clsx from 'clsx';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ChatResponsePart } from '@remote-pilot/shared';
@@ -14,9 +15,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ role, content, par
   const isUser = role === 'user';
   
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} ${styles.container}`}>
+    <div className={clsx('flex', isUser ? 'justify-end' : 'justify-start', styles.container)}>
       <div 
-        className={`${styles.bubble} ${isUser ? styles.bubbleUser : styles.bubbleAssistant}`}
+        className={clsx(styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAssistant)}
       >
         {isUser ? (
           <div className={styles.userContent}>{content}</div>
@@ -82,7 +83,7 @@ const ToolInvocation: React.FC<{ part: ChatResponsePart }> = ({ part }) => {
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className={styles.toolInfo}>
-          <span className={`${styles.statusIcon} ${statusClass}`}>{statusIcon}</span>
+          <span className={clsx(styles.statusIcon, statusClass)}>{statusIcon}</span>
           <span className={styles.toolName}>
             {part.toolName || 'Tool'}
           </span>

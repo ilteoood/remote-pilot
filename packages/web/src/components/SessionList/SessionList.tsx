@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import clsx from 'clsx';
 import { ChatSessionsList, ChatSessionSummary } from '@remote-pilot/shared';
 import styles from './SessionList.module.css';
 
@@ -55,10 +56,10 @@ const SessionItem: React.FC<{
   return (
     <div 
       onClick={onClick}
-      className={`${styles.sessionItem} ${isActive ? styles.sessionItemActive : styles.sessionItemInactive}`}
+      className={clsx(styles.sessionItem, isActive ? styles.sessionItemActive : styles.sessionItemInactive)}
     >
       <div className="flex justify-between items-start mb-1">
-        <div className={`${styles.sessionTitle} ${isActive ? styles.sessionTitleActive : styles.sessionTitleInactive}`}>
+        <div className={clsx(styles.sessionTitle, isActive ? styles.sessionTitleActive : styles.sessionTitleInactive)}>
           {session.title || 'Untitled Session'}
         </div>
         {session.hasPendingEdits && (

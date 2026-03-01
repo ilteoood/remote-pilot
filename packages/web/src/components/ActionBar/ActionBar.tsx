@@ -1,4 +1,5 @@
 import React, { useState, KeyboardEvent } from 'react';
+import clsx from 'clsx';
 import styles from './ActionBar.module.css';
 
 interface ActionBarProps {
@@ -35,21 +36,21 @@ export const ActionBar: React.FC<ActionBarProps> = ({
   };
 
   return (
-    <div className={`flex flex-col gap-sm ${styles.container}`}>
+    <div className={clsx('flex flex-col gap-sm', styles.container)}>
       {hasPendingEdits && (
         <div className={styles.editActions}>
           <div className={styles.editButtons}>
             <button
               onClick={onAcceptAll}
               disabled={disabled}
-              className={`${styles.acceptButton} ${disabled ? styles.disabled : ''}`}
+              className={clsx(styles.acceptButton, disabled && styles.disabled)}
             >
               Accept All
             </button>
             <button
               onClick={onRejectAll}
               disabled={disabled}
-              className={`${styles.rejectButton} ${disabled ? styles.disabled : ''}`}
+              className={clsx(styles.rejectButton, disabled && styles.disabled)}
             >
               Reject All
             </button>
@@ -57,7 +58,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({
           <button
             onClick={onContinue}
             disabled={disabled}
-            className={`${styles.continueButton} ${disabled ? styles.disabled : ''}`}
+            className={clsx(styles.continueButton, disabled && styles.disabled)}
           >
             Continue
           </button>
@@ -72,12 +73,12 @@ export const ActionBar: React.FC<ActionBarProps> = ({
           onKeyDown={handleKeyDown}
           placeholder="Ask Copilot..."
           disabled={disabled}
-          className={`grow ${styles.messageInput}`}
+          className={clsx('grow', styles.messageInput)}
         />
         <button
           onClick={handleSend}
           disabled={!input.trim() || disabled}
-          className={`${styles.sendButton} ${(!input.trim() || disabled) ? styles.disabled : ''}`}
+          className={clsx(styles.sendButton, (!input.trim() || disabled) && styles.disabled)}
         >
           SEND
         </button>
