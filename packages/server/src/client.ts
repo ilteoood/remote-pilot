@@ -1,5 +1,5 @@
-import { WebSocket } from "ws";
-import { ClientInfo, ClientRole } from "./types.js";
+import { WebSocket } from 'ws';
+import { ClientInfo, ClientRole } from './types.js';
 
 export const clientInfo = new WeakMap<WebSocket, ClientInfo>();
 export const sockets = new Set<WebSocket>();
@@ -22,7 +22,7 @@ export function addSocket(ws: WebSocket): void {
 export function removeSocket(ws: WebSocket): void {
   sockets.delete(ws);
   const info = clientInfo.get(ws);
-  if (info?.role === "extension" && extensionSocket === ws) {
+  if (info?.role === 'extension' && extensionSocket === ws) {
     extensionSocket = null;
   }
   clientInfo.delete(ws);

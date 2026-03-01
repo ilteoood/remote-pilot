@@ -23,10 +23,8 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({ onPair, isConnecti
     <div className={styles.wrapper}>
       <div className={styles.card}>
         <h1 className={styles.title}>{t('pairing.title')}</h1>
-        
-        <p className={styles.description}>
-          {t('pairing.description')}
-        </p>
+
+        <p className={styles.description}>{t('pairing.description')}</p>
 
         <form onSubmit={handleSubmit} className={styles.form}>
           <input
@@ -37,14 +35,9 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({ onPair, isConnecti
             className={styles.codeInput}
             maxLength={6}
             disabled={isConnecting}
-            autoFocus
           />
 
-          {error && (
-            <div className={styles.error}>
-              {error}
-            </div>
-          )}
+          {error && <div className={styles.error}>{error}</div>}
 
           <button
             type="submit"

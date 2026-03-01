@@ -1,9 +1,9 @@
-import http from "node:http";
-import { WebSocketServer } from "ws";
+import http from 'node:http';
+import { WebSocketServer } from 'ws';
 
-import { HOST, pairingCode, PORT, SERVER_TOKEN } from "./config.js";
-import { createHttpApp } from "./http.js";
-import { createWebSocketServer, closeAllSockets } from "./websocket.js";
+import { HOST, PORT, pairingCode, SERVER_TOKEN } from './config.js';
+import { createHttpApp } from './http.js';
+import { closeAllSockets, createWebSocketServer } from './websocket.js';
 
 const app = createHttpApp();
 const server = http.createServer(app);
@@ -36,5 +36,5 @@ const shutdown = (signal: string) => {
   setTimeout(() => process.exit(0), 5000).unref();
 };
 
-process.on("SIGINT", () => shutdown("SIGINT"));
-process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));

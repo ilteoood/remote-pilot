@@ -1,4 +1,3 @@
-
 export const PROTOCOL_VERSION = 1;
 
 // ----------------------------------------------------------
@@ -24,28 +23,28 @@ export interface WsMessage<T extends WsMessageType = WsMessageType> {
 
 export type WsMessageType =
   // Auth / pairing
-  | "pair_request"
-  | "pair_response"
+  | 'pair_request'
+  | 'pair_response'
   // Chat session data (extension → server → web)
-  | "chat_sessions_list"
-  | "chat_session_update"
-  | "chat_editing_state"
+  | 'chat_sessions_list'
+  | 'chat_session_update'
+  | 'chat_editing_state'
   // Commands (web → server → extension)
-  | "send_message"
-  | "accept_all_edits"
-  | "reject_all_edits"
-  | "accept_file_edit"
-  | "reject_file_edit"
-  | "continue_iteration"
-  | "cancel_request"
-  | "new_chat_session"
-  | "request_session"
+  | 'send_message'
+  | 'accept_all_edits'
+  | 'reject_all_edits'
+  | 'accept_file_edit'
+  | 'reject_file_edit'
+  | 'continue_iteration'
+  | 'cancel_request'
+  | 'new_chat_session'
+  | 'request_session'
   // Command acknowledgement (extension → server → web)
-  | "command_ack"
+  | 'command_ack'
   // Connection state
-  | "ping"
-  | "pong"
-  | "extension_status";
+  | 'ping'
+  | 'pong'
+  | 'extension_status';
 
 // ----------------------------------------------------------
 // Payload map
@@ -85,7 +84,7 @@ export interface WsMessageDataMap {
 // Payload definitions
 // ----------------------------------------------------------
 
-export interface EmptyPayload {}
+export type EmptyPayload = Record<string, never>;
 
 /** Web → Server: pair with a code */
 export interface PairRequest {
@@ -139,12 +138,12 @@ export interface ChatRequest {
 }
 
 export interface ChatResponsePart {
-  kind: "markdown" | "tool_invocation" | "code_citation" | "unknown";
+  kind: 'markdown' | 'tool_invocation' | 'code_citation' | 'unknown';
   /** Markdown text or tool description */
   content: string;
   /** For tool invocations */
   toolName?: string;
-  toolStatus?: "running" | "completed" | "failed";
+  toolStatus?: 'running' | 'completed' | 'failed';
 }
 
 /** Extension → Server → Web: editing session state */

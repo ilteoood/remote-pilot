@@ -1,6 +1,6 @@
-import React, { useState, KeyboardEvent } from 'react';
-import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
+import React, { KeyboardEvent, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import styles from './ActionBar.module.css';
 
 interface ActionBarProps {
@@ -43,6 +43,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({
         <div className={styles.editActions}>
           <div className={styles.editButtons}>
             <button
+              type="button"
               onClick={onAcceptAll}
               disabled={disabled}
               className={clsx(styles.acceptButton, disabled && styles.disabled)}
@@ -50,6 +51,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({
               {t('actionBar.acceptAll')}
             </button>
             <button
+              type="button"
               onClick={onRejectAll}
               disabled={disabled}
               className={clsx(styles.rejectButton, disabled && styles.disabled)}
@@ -58,6 +60,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({
             </button>
           </div>
           <button
+            type="button"
             onClick={onContinue}
             disabled={disabled}
             className={clsx(styles.continueButton, disabled && styles.disabled)}
@@ -78,6 +81,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({
           className={clsx('grow', styles.messageInput)}
         />
         <button
+          type="button"
           onClick={handleSend}
           disabled={!input.trim() || disabled}
           className={clsx(styles.sendButton, (!input.trim() || disabled) && styles.disabled)}

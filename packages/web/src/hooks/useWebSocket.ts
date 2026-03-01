@@ -1,15 +1,14 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
 import {
-  WsMessage,
-  WsMessageType,
-  WsMessageDataMap,
-  createMessage,
-  PROTOCOL_VERSION,
-  ExtensionStatus,
+  ChatEditingState,
   ChatSessionsList,
   ChatSessionUpdate,
-  ChatEditingState,
+  createMessage,
+  ExtensionStatus,
+  WsMessage,
+  WsMessageDataMap,
+  WsMessageType,
 } from '@remote-pilot/shared';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 const RECONNECT_DELAY_START = 1000;
 const RECONNECT_DELAY_MAX = 30000;
@@ -25,6 +24,54 @@ export function useWebSocket() {
   const [sessionsList, setSessionsList] = useState<ChatSessionsList | null>(null);
   const [activeSession, setActiveSession] = useState<ChatSessionUpdate | null>(null);
   const [editingState, setEditingState] = useState<ChatEditingState | null>(null);
+
+  const send = useCallback(<T extends WsMessageType>(type: T, data: WsMessageDataMap[T]) => {
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      const message = createMessage(type, data);
+      socketRef.current.send(JSON.stringify(message));
+    } else {
+      console.warn('Cannot send message, socket not open');
+    }
+  }, []);
+
+  const handleMessage = useCallback(
+    (message: WsMessage) => {
+      setLastMessage(message);
+
+      switch (message.type) {
+        case 'pair_response': {
+          const data = message.data as WsMessageDataMap['pair_response'];
+          if (data.success) {
+            setIsPaired(true);
+            if (data.token) {
+              sessionStorage.setItem('auth_token', data.token);
+            }
+          } else {
+            console.error('Pairing failed:', data.error);
+            setIsPaired(false);
+            sessionStorage.removeItem('auth_token');
+          }
+          break;
+        }
+        case 'extension_status':
+          setExtensionStatus(message.data as ExtensionStatus);
+          break;
+        case 'chat_sessions_list':
+          setSessionsList(message.data as ChatSessionsList);
+          break;
+        case 'chat_session_update':
+          setActiveSession(message.data as ChatSessionUpdate);
+          break;
+        case 'chat_editing_state':
+          setEditingState(message.data as ChatEditingState);
+          break;
+        case 'ping':
+          send('pong', {});
+          break;
+      }
+    },
+    [send],
+  );
 
   const connect = useCallback(() => {
     // Clear any existing reconnect timer
@@ -58,7 +105,7 @@ export function useWebSocket() {
         // If the protocol requires sending the token on connect, it might be in the query params or a specific message.
         // Assuming for now we just need to re-pair with the code if we have it.
         if (storedCode) {
-           send('pair_request', { pairingCode: storedCode });
+          send('pair_request', { pairingCode: storedCode });
         }
       } else if (storedCode) {
         send('pair_request', { pairingCode: storedCode });
@@ -79,7 +126,7 @@ export function useWebSocket() {
       setIsConnected(false);
       setIsPaired(false);
       socketRef.current = null;
-      
+
       // Schedule reconnect
       const delay = reconnectDelayRef.current;
       console.log(`Reconnecting in ${delay}ms...`);
@@ -93,52 +140,7 @@ export function useWebSocket() {
       console.error('WebSocket error:', err);
       ws.close();
     };
-  }, []);
-
-  const handleMessage = (message: WsMessage) => {
-    setLastMessage(message);
-
-    switch (message.type) {
-      case 'pair_response': {
-        const data = message.data as WsMessageDataMap['pair_response'];
-        if (data.success) {
-          setIsPaired(true);
-          if (data.token) {
-            sessionStorage.setItem('auth_token', data.token);
-          }
-        } else {
-          console.error('Pairing failed:', data.error);
-          setIsPaired(false);
-          sessionStorage.removeItem('auth_token');
-        }
-        break;
-      }
-      case 'extension_status':
-        setExtensionStatus(message.data as ExtensionStatus);
-        break;
-      case 'chat_sessions_list':
-        setSessionsList(message.data as ChatSessionsList);
-        break;
-      case 'chat_session_update':
-        setActiveSession(message.data as ChatSessionUpdate);
-        break;
-      case 'chat_editing_state':
-        setEditingState(message.data as ChatEditingState);
-        break;
-      case 'ping':
-        send('pong', {});
-        break;
-    }
-  };
-
-  const send = useCallback(<T extends WsMessageType>(type: T, data: WsMessageDataMap[T]) => {
-    if (socketRef.current?.readyState === WebSocket.OPEN) {
-      const message = createMessage(type, data);
-      socketRef.current.send(JSON.stringify(message));
-    } else {
-      console.warn('Cannot send message, socket not open');
-    }
-  }, []);
+  }, [handleMessage, send]);
 
   useEffect(() => {
     connect();

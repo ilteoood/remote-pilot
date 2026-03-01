@@ -1,7 +1,5 @@
-import http from "node:http";
-import { WebSocket, WebSocketServer } from "ws";
-import { IncomingMessage } from "node:http";
-import { ClientRole } from "./types.js";
+import http, { IncomingMessage } from 'node:http';
+import { WebSocket, WebSocketServer } from 'ws';
 import {
   addSocket,
   createClientInfo,
@@ -11,12 +9,13 @@ import {
   setClientInfo,
   setExtensionSocket,
   sockets,
-} from "./client.js";
-import { SERVER_TOKEN } from "./config.js";
-import { handleMessage, parseMessage } from "./messaging.js";
+} from './client.js';
+import { SERVER_TOKEN } from './config.js';
+import { handleMessage, parseMessage } from './messaging.js';
+import { ClientRole } from './types.js';
 
 function isLanIp(hostname: string): boolean {
-  const parts = hostname.split(".");
+  const parts = hostname.split('.');
   if (parts.length !== 4) return false;
   const numbers = parts.map((part) => Number(part));
   if (numbers.some((part) => Number.isNaN(part) || part < 0 || part > 255)) {
@@ -38,68 +37,65 @@ function isAllowedOrigin(origin: string | undefined): boolean {
   }
   const hostname = url.hostname;
   return (
-    hostname === "localhost" ||
-    hostname === "127.0.0.1" ||
-    hostname === "::1" ||
-    isLanIp(hostname)
+    hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' || isLanIp(hostname)
   );
 }
 
 export function createWebSocketServer(server: http.Server): WebSocketServer {
   const wss = new WebSocketServer({ server });
 
-  wss.on("connection", (ws: WebSocket, req: IncomingMessage) => {
+  wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
     if (!isAllowedOrigin(req.headers.origin)) {
-      ws.close(1008, "Origin not allowed");
+      ws.close(1008, 'Origin not allowed');
       return;
     }
 
-    const url = new URL(req.url ?? "", `http://${req.headers.host ?? "localhost"}`);
-    const role = url.searchParams.get("role") as ClientRole | null;
-    const token = url.searchParams.get("token") ?? undefined;
+    const url = new URL(req.url ?? '', `http://${req.headers.host ?? 'localhost'}`);
+    const role = url.searchParams.get('role') as ClientRole | null;
+    const token = url.searchParams.get('token') ?? undefined;
 
-    if (role === "extension") {
+    if (role === 'extension') {
       if (!token || token !== SERVER_TOKEN) {
-        ws.close(1008, "Invalid token");
+        ws.close(1008, 'Invalid token');
         return;
       }
       const extensionSocket = getExtensionSocket();
       if (extensionSocket && extensionSocket.readyState === WebSocket.OPEN) {
-        ws.close(1008, "Extension already connected");
+        ws.close(1008, 'Extension already connected');
         return;
       }
       setExtensionSocket(ws);
-      setClientInfo(ws, createClientInfo("extension", true, token));
-    } else if (role === "web") {
+      setClientInfo(ws, createClientInfo('extension', true, token));
+    } else if (role === 'web') {
       if (token) {
         if (!hasAuthToken(token)) {
-          ws.close(1008, "Invalid token");
+          ws.close(1008, 'Invalid token');
           return;
         }
-        setClientInfo(ws, createClientInfo("web", true, token));
+        setClientInfo(ws, createClientInfo('web', true, token));
       } else {
-        setClientInfo(ws, createClientInfo("web", false));
+        setClientInfo(ws, createClientInfo('web', false));
       }
     } else {
-      ws.close(1008, "Invalid role");
+      ws.close(1008, 'Invalid role');
       return;
     }
 
     addSocket(ws);
 
-    ws.on("message", (data) => {
+    ws.on('message', (data) => {
       const message = parseMessage(data);
       if (!message) return;
 
       handleMessage(ws, message);
     });
 
-    ws.on("close", () => {
+    ws.on('close', () => {
       removeSocket(ws);
     });
 
-    ws.on("error", (error) => {
-      console.warn("WebSocket error:", error);
+    ws.on('error', (error) => {
+      console.warn('WebSocket error:', error);
     });
   });
 
@@ -109,7 +105,7 @@ export function createWebSocketServer(server: http.Server): WebSocketServer {
 export function closeAllSockets(): void {
   for (const socket of sockets) {
     if (socket.readyState === WebSocket.OPEN) {
-      socket.close(1001, "Server shutting down");
+      socket.close(1001, 'Server shutting down');
     }
   }
 }

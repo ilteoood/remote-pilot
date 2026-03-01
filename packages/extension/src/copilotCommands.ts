@@ -1,5 +1,5 @@
-import * as vscode from "vscode";
-import * as path from "path";
+import * as path from 'node:path';
+import * as vscode from 'vscode';
 
 export interface CommandResult {
   success: boolean;
@@ -10,11 +10,11 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export async function sendMessage(prompt: string): Promise<CommandResult> {
   try {
-    await vscode.commands.executeCommand("workbench.panel.chat.view.copilot.focus");
-    await vscode.commands.executeCommand("workbench.action.chat.focusInput");
+    await vscode.commands.executeCommand('workbench.panel.chat.view.copilot.focus');
+    await vscode.commands.executeCommand('workbench.action.chat.focusInput');
     await sleep(200);
-    await vscode.commands.executeCommand("type", { text: prompt });
-    await vscode.commands.executeCommand("workbench.action.chat.submit");
+    await vscode.commands.executeCommand('type', { text: prompt });
+    await vscode.commands.executeCommand('workbench.action.chat.submit');
     return { success: true };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : String(error) };
@@ -23,7 +23,7 @@ export async function sendMessage(prompt: string): Promise<CommandResult> {
 
 export async function acceptAllEdits(): Promise<CommandResult> {
   try {
-    await vscode.commands.executeCommand("chatEditing.acceptAllFiles");
+    await vscode.commands.executeCommand('chatEditing.acceptAllFiles');
     return { success: true };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : String(error) };
@@ -32,7 +32,7 @@ export async function acceptAllEdits(): Promise<CommandResult> {
 
 export async function rejectAllEdits(): Promise<CommandResult> {
   try {
-    await vscode.commands.executeCommand("chatEditing.discardAllFiles");
+    await vscode.commands.executeCommand('chatEditing.discardAllFiles');
     return { success: true };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : String(error) };
@@ -54,11 +54,11 @@ export async function acceptFileEdit(filePath: string): Promise<CommandResult> {
   try {
     const uri = await resolveFileUri(filePath);
     if (!uri) {
-      return { success: false, error: "No workspace available to resolve file path" };
+      return { success: false, error: 'No workspace available to resolve file path' };
     }
     const doc = await vscode.workspace.openTextDocument(uri);
     await vscode.window.showTextDocument(doc, { preview: false });
-    await vscode.commands.executeCommand("chatEditing.acceptFile");
+    await vscode.commands.executeCommand('chatEditing.acceptFile');
     return { success: true };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : String(error) };
@@ -69,11 +69,11 @@ export async function rejectFileEdit(filePath: string): Promise<CommandResult> {
   try {
     const uri = await resolveFileUri(filePath);
     if (!uri) {
-      return { success: false, error: "No workspace available to resolve file path" };
+      return { success: false, error: 'No workspace available to resolve file path' };
     }
     const doc = await vscode.workspace.openTextDocument(uri);
     await vscode.window.showTextDocument(doc, { preview: false });
-    await vscode.commands.executeCommand("chatEditing.discardFile");
+    await vscode.commands.executeCommand('chatEditing.discardFile');
     return { success: true };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : String(error) };
@@ -83,10 +83,10 @@ export async function rejectFileEdit(filePath: string): Promise<CommandResult> {
 export async function continueIteration(): Promise<CommandResult> {
   try {
     try {
-      await vscode.commands.executeCommand("workbench.action.chat.retry");
+      await vscode.commands.executeCommand('workbench.action.chat.retry');
       return { success: true };
-    } catch (primaryError) {
-      await vscode.commands.executeCommand("github.copilot.chat.review.continueInChat");
+    } catch {
+      await vscode.commands.executeCommand('github.copilot.chat.review.continueInChat');
       return { success: true };
     }
   } catch (error) {
@@ -96,7 +96,7 @@ export async function continueIteration(): Promise<CommandResult> {
 
 export async function cancelRequest(): Promise<CommandResult> {
   try {
-    await vscode.commands.executeCommand("workbench.action.chat.cancel");
+    await vscode.commands.executeCommand('workbench.action.chat.cancel');
     return { success: true };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : String(error) };
@@ -105,7 +105,7 @@ export async function cancelRequest(): Promise<CommandResult> {
 
 export async function newChatSession(): Promise<CommandResult> {
   try {
-    await vscode.commands.executeCommand("workbench.action.chat.newChat");
+    await vscode.commands.executeCommand('workbench.action.chat.newChat');
     return { success: true };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : String(error) };

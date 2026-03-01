@@ -1,6 +1,6 @@
+import { ChatSessionUpdate } from '@remote-pilot/shared';
 import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChatSessionUpdate } from '@remote-pilot/shared';
 import { MessageBubble } from '../MessageBubble/MessageBubble';
 import styles from './ChatView.module.css';
 
@@ -14,7 +14,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ session }) => {
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [session?.requests.length, session?.requests[session.requests.length - 1]?.responseParts.length]);
+  }, []);
 
   if (!session) {
     return (
@@ -31,9 +31,9 @@ export const ChatView: React.FC<ChatViewProps> = ({ session }) => {
     <div className={styles.container}>
       {session.requests.map((req) => (
         <React.Fragment key={req.requestId}>
-          <MessageBubble role="user" content={req.message} />
+          <MessageBubble content={req.message} />
           {(req.responseParts.length > 0 || req.isStreaming) && (
-            <MessageBubble role="assistant" parts={req.responseParts} />
+            <MessageBubble parts={req.responseParts} />
           )}
         </React.Fragment>
       ))}

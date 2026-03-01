@@ -8,14 +8,8 @@ import './styles/global.css';
 
 export const App: React.FC = () => {
   const { t } = useTranslation();
-  const {
-    isConnected,
-    isPaired,
-    extensionStatus,
-    sessionsList,
-    activeSession,
-    send,
-  } = useWebSocket();
+  const { isConnected, isPaired, extensionStatus, sessionsList, activeSession, send } =
+    useWebSocket();
 
   const [pairingError, setPairingError] = useState<string | undefined>();
   const [localActiveSessionId, setLocalActiveSessionId] = useState<string | undefined>();
@@ -57,7 +51,7 @@ export const App: React.FC = () => {
   const handleSendMessage = (text: string) => {
     send('send_message', {
       prompt: text,
-      sessionId: localActiveSessionId
+      sessionId: localActiveSessionId,
     });
   };
 
@@ -77,7 +71,8 @@ export const App: React.FC = () => {
     send('continue_iteration', {});
   };
 
-  const hasPendingEdits = !!sessionsList?.sessions.find(s => s.sessionId === localActiveSessionId)?.hasPendingEdits;
+  const hasPendingEdits = !!sessionsList?.sessions.find((s) => s.sessionId === localActiveSessionId)
+    ?.hasPendingEdits;
 
   if (!isConnected) {
     return (
@@ -88,13 +83,7 @@ export const App: React.FC = () => {
   }
 
   if (!isPaired) {
-    return (
-      <PairingScreen
-        onPair={handlePair}
-        isConnecting={false}
-        error={pairingError}
-      />
-    );
+    return <PairingScreen onPair={handlePair} isConnecting={false} error={pairingError} />;
   }
 
   return (

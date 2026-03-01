@@ -1,8 +1,8 @@
-import * as vscode from "vscode";
-import * as path from "path";
-import { ChildProcess, fork } from "child_process";
-import { ChatWatcher } from "./chatWatcher";
-import { WsClient } from "./wsClient";
+import { ChildProcess, fork } from 'node:child_process';
+import * as path from 'node:path';
+import * as vscode from 'vscode';
+import { ChatWatcher } from './chatWatcher';
+import { WsClient } from './wsClient';
 
 interface ServerInfo {
   token: string;
@@ -18,17 +18,17 @@ let serverInfo: ServerInfo | null = null;
 let outputChannel: vscode.OutputChannel | null = null;
 
 function getConfig() {
-  const config = vscode.workspace.getConfiguration("remotePilot");
+  const config = vscode.workspace.getConfiguration('remotePilot');
   return {
-    serverPort: config.get<number>("serverPort", 3847),
-    autoStart: config.get<boolean>("autoStart", false),
-    allowLan: config.get<boolean>("allowLan", false),
+    serverPort: config.get<number>('serverPort', 3847),
+    autoStart: config.get<boolean>('autoStart', false),
+    allowLan: config.get<boolean>('allowLan', false),
   };
 }
 
 function getOutputChannel(): vscode.OutputChannel {
   if (!outputChannel) {
-    outputChannel = vscode.window.createOutputChannel("Remote Pilot");
+    outputChannel = vscode.window.createOutputChannel('Remote Pilot');
   }
   return outputChannel;
 }
@@ -36,8 +36,8 @@ function getOutputChannel(): vscode.OutputChannel {
 function ensureStatusBar(): vscode.StatusBarItem {
   if (!statusBar) {
     statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
-    statusBar.command = "remote-pilot.showPairingCode";
-    statusBar.tooltip = "Remote Pilot connection status";
+    statusBar.command = 'remote-pilot.showPairingCode';
+    statusBar.tooltip = 'Remote Pilot connection status';
     statusBar.show();
   }
   return statusBar;
@@ -45,17 +45,17 @@ function ensureStatusBar(): vscode.StatusBarItem {
 
 function updateStatus(connected: boolean): void {
   const bar = ensureStatusBar();
-  bar.text = connected ? "$(plug) Remote Pilot" : "$(circle-slash) Remote Pilot";
+  bar.text = connected ? '$(plug) Remote Pilot' : '$(circle-slash) Remote Pilot';
 }
 
 function resolveServerEntry(): string {
   // In dev (monorepo): extension is at packages/extension/dist/extension.js
   // Server entry is at packages/server/dist/index.js
   // __dirname = packages/extension/dist → ../../server/dist/index.js
-  const monorepoPath = path.resolve(__dirname, "../../server/dist/index.js");
+  const monorepoPath = path.resolve(__dirname, '../../server/dist/index.js');
 
   // In packaged VSIX: server is copied into dist/server/index.js
-  const bundledPath = path.resolve(__dirname, "server/index.js");
+  const bundledPath = path.resolve(__dirname, 'server/index.js');
 
   try {
     require.resolve(bundledPath);
@@ -72,11 +72,11 @@ function spawnServer(): Promise<ServerInfo> {
     const channel = getOutputChannel();
 
     const env: Record<string, string> = {
-      ...process.env as Record<string, string>,
+      ...(process.env as Record<string, string>),
       REMOTE_PILOT_PORT: String(serverPort),
     };
     if (allowLan) {
-      env.REMOTE_PILOT_HOST = "0.0.0.0";
+      env.REMOTE_PILOT_HOST = '0.0.0.0';
     }
 
     channel.appendLine(`Starting server: ${serverEntry}`);
@@ -86,7 +86,7 @@ function spawnServer(): Promise<ServerInfo> {
     const child = fork(serverEntry, [], {
       env,
       cwd: serverDir,
-      stdio: ["pipe", "pipe", "pipe", "ipc"],
+      stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
       silent: true,
     });
 
@@ -98,12 +98,12 @@ function spawnServer(): Promise<ServerInfo> {
     const timeout = setTimeout(() => {
       if (!settled) {
         settled = true;
-        reject(new Error("Server did not become ready within 10 seconds"));
+        reject(new Error('Server did not become ready within 10 seconds'));
       }
     }, 10000);
 
     const handleStdout = (data: Buffer) => {
-      const lines = data.toString().split("\n");
+      const lines = data.toString().split('\n');
       for (const line of lines) {
         const trimmed = line.trim();
         if (!trimmed) continue;
@@ -122,7 +122,7 @@ function spawnServer(): Promise<ServerInfo> {
         if (pairingMatch) {
           info.pairingCode = pairingMatch[1];
         }
-        if (trimmed === "REMOTE_PILOT_READY=true" && info.token && info.port && info.pairingCode) {
+        if (trimmed === 'REMOTE_PILOT_READY=true' && info.token && info.port && info.pairingCode) {
           if (!settled) {
             settled = true;
             clearTimeout(timeout);
@@ -133,15 +133,15 @@ function spawnServer(): Promise<ServerInfo> {
     };
 
     if (child.stdout) {
-      child.stdout.on("data", handleStdout);
+      child.stdout.on('data', handleStdout);
     }
     if (child.stderr) {
-      child.stderr.on("data", (data: Buffer) => {
+      child.stderr.on('data', (data: Buffer) => {
         channel.appendLine(`[stderr] ${data.toString().trim()}`);
       });
     }
 
-    child.on("error", (err) => {
+    child.on('error', (err) => {
       channel.appendLine(`Server process error: ${err.message}`);
       if (!settled) {
         settled = true;
@@ -150,7 +150,7 @@ function spawnServer(): Promise<ServerInfo> {
       }
     });
 
-    child.on("exit", (code) => {
+    child.on('exit', (code) => {
       channel.appendLine(`Server process exited with code ${code}`);
       serverProcess = null;
       serverInfo = null;
@@ -165,7 +165,7 @@ function spawnServer(): Promise<ServerInfo> {
 
 function killServer(): void {
   if (serverProcess) {
-    serverProcess.kill("SIGTERM");
+    serverProcess.kill('SIGTERM');
     serverProcess = null;
   }
   serverInfo = null;
@@ -173,14 +173,14 @@ function killServer(): void {
 
 async function startRemotePilot(): Promise<void> {
   if (serverProcess && serverInfo) {
-    vscode.window.showInformationMessage("Remote Pilot is already running.");
+    vscode.window.showInformationMessage('Remote Pilot is already running.');
     return;
   }
 
   try {
     updateStatus(false);
     const bar = ensureStatusBar();
-    bar.text = "$(loading~spin) Remote Pilot";
+    bar.text = '$(loading~spin) Remote Pilot';
 
     serverInfo = await spawnServer();
     wsClient = new WsClient(serverInfo.port, serverInfo.token);
@@ -231,23 +231,23 @@ function stopRemotePilot(): void {
   }
   killServer();
   updateStatus(false);
-  vscode.window.showInformationMessage("Remote Pilot stopped.");
+  vscode.window.showInformationMessage('Remote Pilot stopped.');
 }
 
 export function activate(context: vscode.ExtensionContext): void {
   ensureStatusBar();
   updateStatus(false);
 
-  const startCommand = vscode.commands.registerCommand("remote-pilot.start", async () => {
+  const startCommand = vscode.commands.registerCommand('remote-pilot.start', async () => {
     await startRemotePilot();
   });
 
-  const stopCommand = vscode.commands.registerCommand("remote-pilot.stop", () => {
+  const stopCommand = vscode.commands.registerCommand('remote-pilot.stop', () => {
     stopRemotePilot();
   });
 
   const showPairingCodeCommand = vscode.commands.registerCommand(
-    "remote-pilot.showPairingCode",
+    'remote-pilot.showPairingCode',
     async () => {
       if (serverInfo) {
         await vscode.env.clipboard.writeText(serverInfo.pairingCode);
@@ -255,7 +255,7 @@ export function activate(context: vscode.ExtensionContext): void {
           `Remote Pilot pairing code: ${serverInfo.pairingCode} (copied to clipboard)`,
         );
       } else {
-        vscode.window.showWarningMessage("Remote Pilot is not running. Start it first.");
+        vscode.window.showWarningMessage('Remote Pilot is not running. Start it first.');
       }
     },
   );

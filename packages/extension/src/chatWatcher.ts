@@ -1,13 +1,13 @@
-import * as vscode from "vscode";
-import * as fs from "fs";
-import * as path from "path";
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import {
   ChatEditingState,
   ChatSessionsList,
   ChatSessionUpdate,
   VscodeChatEditingSessionFile,
   VscodeChatSessionFile,
-} from "@remote-pilot/shared";
+} from '@remote-pilot/shared';
+import * as vscode from 'vscode';
 
 export interface ChatWatcherCallbacks {
   onSessionsList?: (list: ChatSessionsList) => void;
@@ -48,8 +48,8 @@ export class ChatWatcher {
     }
 
     this.workspaceStoragePath = path.join(storageRoot, workspaceHash);
-    this.sessionsDir = path.join(this.workspaceStoragePath, "chatSessions");
-    this.editingDir = path.join(this.workspaceStoragePath, "chatEditingSessions");
+    this.sessionsDir = path.join(this.workspaceStoragePath, 'chatSessions');
+    this.editingDir = path.join(this.workspaceStoragePath, 'chatEditingSessions');
 
     this.watchSessions();
     this.watchEditingSessions();
@@ -67,12 +67,12 @@ export class ChatWatcher {
     try {
       const files = await fs.promises.readdir(this.sessionsDir);
       for (const file of files) {
-        if (!file.endsWith(".json")) {
+        if (!file.endsWith('.json')) {
           continue;
         }
         const fullPath = path.join(this.sessionsDir, file);
         try {
-          const raw = await fs.promises.readFile(fullPath, "utf-8");
+          const raw = await fs.promises.readFile(fullPath, 'utf-8');
           const parsed = JSON.parse(raw) as VscodeChatSessionFile;
           if (parsed.sessionId === sessionId) {
             const update = this.toChatSessionUpdate(parsed);
@@ -81,9 +81,7 @@ export class ChatWatcher {
             }
             return true;
           }
-        } catch {
-          continue;
-        }
+        } catch {}
       }
       return false;
     } catch {
@@ -108,34 +106,52 @@ export class ChatWatcher {
   }
 
   private getWorkspaceStorageRoot(): string {
-    const home = process.env.HOME || process.env.USERPROFILE || "";
+    const home = process.env.HOME || process.env.USERPROFILE || '';
     switch (process.platform) {
-      case "win32":
-        return path.join(process.env.APPDATA || path.join(home, "AppData", "Roaming"), "Code", "User", "workspaceStorage");
-      case "linux":
-        return path.join(process.env.XDG_CONFIG_HOME || path.join(home, ".config"), "Code", "User", "workspaceStorage");
+      case 'win32':
+        return path.join(
+          process.env.APPDATA || path.join(home, 'AppData', 'Roaming'),
+          'Code',
+          'User',
+          'workspaceStorage',
+        );
+      case 'linux':
+        return path.join(
+          process.env.XDG_CONFIG_HOME || path.join(home, '.config'),
+          'Code',
+          'User',
+          'workspaceStorage',
+        );
       default:
-        return path.join(home, "Library", "Application Support", "Code", "User", "workspaceStorage");
+        return path.join(
+          home,
+          'Library',
+          'Application Support',
+          'Code',
+          'User',
+          'workspaceStorage',
+        );
     }
   }
 
-  private async findWorkspaceHash(storageRoot: string, workspaceUri: string): Promise<string | null> {
+  private async findWorkspaceHash(
+    storageRoot: string,
+    workspaceUri: string,
+  ): Promise<string | null> {
     try {
       const entries = await fs.promises.readdir(storageRoot, { withFileTypes: true });
       for (const entry of entries) {
         if (!entry.isDirectory()) {
           continue;
         }
-        const workspaceJson = path.join(storageRoot, entry.name, "workspace.json");
+        const workspaceJson = path.join(storageRoot, entry.name, 'workspace.json');
         try {
-          const raw = await fs.promises.readFile(workspaceJson, "utf-8");
+          const raw = await fs.promises.readFile(workspaceJson, 'utf-8');
           const parsed = JSON.parse(raw) as { folder?: string };
           if (parsed.folder === workspaceUri) {
             return entry.name;
           }
-        } catch {
-          continue;
-        }
+        } catch {}
       }
       return null;
     } catch {
@@ -151,7 +167,7 @@ export class ChatWatcher {
       return;
     }
     this.sessionWatcher = fs.watch(this.sessionsDir, (_event, filename) => {
-      if (!filename || !filename.endsWith(".json")) {
+      if (!filename || !filename.endsWith('.json')) {
         return;
       }
       const fullPath = path.join(this.sessionsDir!, filename);
@@ -170,7 +186,7 @@ export class ChatWatcher {
       return;
     }
     this.editingWatcher = fs.watch(this.editingDir, { recursive: true }, (_event, filename) => {
-      if (!filename || !filename.endsWith("state.json")) {
+      if (!filename || !filename.endsWith('state.json')) {
         return;
       }
       const fullPath = path.join(this.editingDir!, filename);
@@ -196,7 +212,7 @@ export class ChatWatcher {
 
   private async handleSessionFile(filePath: string): Promise<void> {
     try {
-      const raw = await fs.promises.readFile(filePath, "utf-8");
+      const raw = await fs.promises.readFile(filePath, 'utf-8');
       const parsed = JSON.parse(raw) as VscodeChatSessionFile;
       const update = this.toChatSessionUpdate(parsed);
       if (this.callbacks.onSessionUpdate) {
@@ -209,7 +225,7 @@ export class ChatWatcher {
 
   private async handleEditingStateFile(filePath: string): Promise<void> {
     try {
-      const raw = await fs.promises.readFile(filePath, "utf-8");
+      const raw = await fs.promises.readFile(filePath, 'utf-8');
       const parsed = JSON.parse(raw) as VscodeChatEditingSessionFile;
       const state = this.toChatEditingState(parsed);
       if (this.callbacks.onEditingState && state) {
@@ -222,21 +238,21 @@ export class ChatWatcher {
 
   private toChatSessionUpdate(session: VscodeChatSessionFile): ChatSessionUpdate {
     const requests = session.requests.map((request) => {
-      const message = typeof request.message === "string" ? request.message : request.message.text;
+      const message = typeof request.message === 'string' ? request.message : request.message.text;
       const responseParts = request.response.map((item) => {
-        if (item.kind === "markdownContent" || item.value) {
-          return { kind: "markdown" as const, content: item.value || "" };
+        if (item.kind === 'markdownContent' || item.value) {
+          return { kind: 'markdown' as const, content: item.value || '' };
         }
         if (item.toolId || item.toolCallId) {
-          const toolStatus: "completed" | "running" = item.isComplete ? "completed" : "running";
+          const toolStatus: 'completed' | 'running' = item.isComplete ? 'completed' : 'running';
           return {
-            kind: "tool_invocation" as const,
-            content: item.invocationMessage || item.pastTenseMessage || "",
-            toolName: item.toolId || item.toolCallId || "",
+            kind: 'tool_invocation' as const,
+            content: item.invocationMessage || item.pastTenseMessage || '',
+            toolName: item.toolId || item.toolCallId || '',
             toolStatus,
           };
         }
-        return { kind: "unknown" as const, content: JSON.stringify(item) };
+        return { kind: 'unknown' as const, content: JSON.stringify(item) };
       });
       const lastResponse = request.response[request.response.length - 1];
       const isStreaming = lastResponse ? lastResponse.isComplete === false : false;
@@ -246,7 +262,9 @@ export class ChatWatcher {
         responseParts,
         isStreaming,
         isCanceled: request.isCanceled ?? false,
-        timestamp: request.timestamp ? new Date(request.timestamp).toISOString() : new Date().toISOString(),
+        timestamp: request.timestamp
+          ? new Date(request.timestamp).toISOString()
+          : new Date().toISOString(),
       };
     });
 
@@ -258,7 +276,10 @@ export class ChatWatcher {
     if (!sessionId) {
       return null;
     }
-    const entries = file.recentSnapshot?.entries || file.linearHistory?.[file.linearHistory.length - 1]?.stops?.[0]?.entries || [];
+    const entries =
+      file.recentSnapshot?.entries ||
+      file.linearHistory?.[file.linearHistory.length - 1]?.stops?.[0]?.entries ||
+      [];
     const mappedEntries = entries.map((entry) => {
       return {
         filePath: this.toWorkspaceRelativePath(entry.resource),
@@ -295,21 +316,21 @@ export class ChatWatcher {
     }
     try {
       const files = await fs.promises.readdir(this.sessionsDir);
-      const sessions = [] as ChatSessionsList["sessions"];
+      const sessions = [] as ChatSessionsList['sessions'];
       for (const file of files) {
-        if (!file.endsWith(".json")) {
+        if (!file.endsWith('.json')) {
           continue;
         }
         const fullPath = path.join(this.sessionsDir, file);
         try {
-          const raw = await fs.promises.readFile(fullPath, "utf-8");
+          const raw = await fs.promises.readFile(fullPath, 'utf-8');
           const parsed = JSON.parse(raw) as VscodeChatSessionFile;
           const firstRequest = parsed.requests[0];
           const title = firstRequest
-            ? typeof firstRequest.message === "string"
+            ? typeof firstRequest.message === 'string'
               ? firstRequest.message
               : firstRequest.message.text
-            : "";
+            : '';
           const createdAt = parsed.creationDate
             ? new Date(parsed.creationDate).toISOString()
             : new Date().toISOString();
@@ -324,9 +345,7 @@ export class ChatWatcher {
             requestCount: parsed.requests.length,
             hasPendingEdits: parsed.hasPendingEdits ?? false,
           });
-        } catch {
-          continue;
-        }
+        } catch {}
       }
 
       const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri;

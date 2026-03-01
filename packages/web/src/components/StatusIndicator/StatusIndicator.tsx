@@ -1,7 +1,7 @@
+import { ExtensionStatus } from '@remote-pilot/shared';
+import clsx from 'clsx';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import clsx from 'clsx';
-import { ExtensionStatus } from '@remote-pilot/shared';
 import styles from './StatusIndicator.module.css';
 
 interface StatusIndicatorProps {
@@ -33,10 +33,5 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = ({
     title = t('status.webConnectedNotPaired');
   }
 
-  return (
-    <div
-      title={title}
-      className={clsx(styles.indicator, statusClass)}
-    />
-  );
+  return <div title={title} className={clsx(styles.indicator, statusClass)} />;
 };

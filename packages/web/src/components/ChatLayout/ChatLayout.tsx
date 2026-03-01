@@ -1,11 +1,11 @@
+import { ChatSessionsList, ChatSessionUpdate, ExtensionStatus } from '@remote-pilot/shared';
+import clsx from 'clsx';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import clsx from 'clsx';
-import { SessionList } from '../SessionList/SessionList';
-import { ChatView } from '../ChatView/ChatView';
 import { ActionBar } from '../ActionBar/ActionBar';
+import { ChatView } from '../ChatView/ChatView';
+import { SessionList } from '../SessionList/SessionList';
 import { StatusIndicator } from '../StatusIndicator/StatusIndicator';
-import { ChatSessionUpdate, ChatSessionsList, ExtensionStatus } from '@remote-pilot/shared';
 import styles from './ChatLayout.module.css';
 
 interface ChatLayoutProps {
@@ -45,7 +45,8 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
   return (
     <div className={styles.container}>
       {/* Mobile Sidebar Toggle */}
-      <button 
+      <button
+        type='button'
         className={styles.mobileToggle}
         onClick={() => setShowSidebar(!showSidebar)}
         aria-label={t('chatLayout.menu')}
@@ -54,10 +55,10 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
       </button>
 
       {/* Sidebar */}
-      <div 
+      <div
         className={clsx(styles.sidebar, showSidebar ? styles.sidebarOpen : styles.sidebarClosed)}
       >
-        <SessionList 
+        <SessionList
           sessions={sessions}
           activeSessionId={activeSessionId}
           onSelectSession={(id) => {
@@ -75,10 +76,10 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
           <h1 className={styles.title}>
             {activeSessionId ? t('chatLayout.chat') : t('chatLayout.remotePilot')}
           </h1>
-          <StatusIndicator 
-            isConnected={isConnected} 
-            isPaired={isPaired} 
-            extensionStatus={extensionStatus} 
+          <StatusIndicator
+            isConnected={isConnected}
+            isPaired={isPaired}
+            extensionStatus={extensionStatus}
           />
         </div>
 
@@ -88,7 +89,7 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
         </div>
 
         {/* Input Area */}
-        <ActionBar 
+        <ActionBar
           onSendMessage={onSendMessage}
           onAcceptAll={onAcceptAll}
           onRejectAll={onRejectAll}
@@ -99,12 +100,7 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
       </div>
 
       {/* Overlay for mobile sidebar */}
-      {showSidebar && (
-        <div 
-          className={styles.overlay}
-          onClick={() => setShowSidebar(false)}
-        />
-      )}
+      {showSidebar && <div className={styles.overlay} onClick={() => setShowSidebar(false)} />}
     </div>
   );
 };

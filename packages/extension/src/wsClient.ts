@@ -1,16 +1,16 @@
-import WebSocket from "ws";
 import {
   ChatEditingState,
-  ChatSessionUpdate,
   ChatSessionsList,
+  ChatSessionUpdate,
   CommandAck,
+  createMessage,
   ExtensionStatus,
-  SendMessageCommand,
   FileEditCommand,
   RequestSessionCommand,
+  SendMessageCommand,
   WsMessage,
-  createMessage,
-} from "@remote-pilot/shared";
+} from '@remote-pilot/shared';
+import WebSocket from 'ws';
 import {
   acceptAllEdits,
   acceptFileEdit,
@@ -20,7 +20,7 @@ import {
   rejectAllEdits,
   rejectFileEdit,
   sendMessage,
-} from "./copilotCommands";
+} from './copilotCommands';
 
 type MessageHandler = (message: WsMessage) => void;
 
@@ -34,7 +34,7 @@ export class WsClient {
   private pingInterval: NodeJS.Timeout | null = null;
   private onMessageHandler?: MessageHandler;
   private requestSessionHandler?: (sessionId: string) => Promise<boolean>;
-  constructor(serverPort: number, serverToken: string, role = "extension") {
+  constructor(serverPort: number, serverToken: string, role = 'extension') {
     this.serverPort = serverPort;
     this.serverToken = serverToken;
     this.role = role;
@@ -49,17 +49,17 @@ export class WsClient {
     const url = `ws://localhost:${this.serverPort}?role=${encodeURIComponent(this.role)}&token=${encodeURIComponent(this.serverToken)}`;
     this.socket = new WebSocket(url);
 
-    this.socket.on("open", () => {
+    this.socket.on('open', () => {
       this.reconnectDelay = 1000;
       this.startPing();
     });
 
-    this.socket.on("message", (data: WebSocket.RawData) => {
+    this.socket.on('message', (data: WebSocket.RawData) => {
       const raw = data.toString();
       try {
         const message = JSON.parse(raw) as WsMessage;
-        if (message.type === "ping") {
-          this.send(createMessage("pong", {}));
+        if (message.type === 'ping') {
+          this.send(createMessage('pong', {}));
           return;
         }
         this.handleIncoming(message).catch(() => {
@@ -78,8 +78,8 @@ export class WsClient {
       this.scheduleReconnect();
     };
 
-    this.socket.on("close", onClose);
-    this.socket.on("error", onClose);
+    this.socket.on('close', onClose);
+    this.socket.on('error', onClose);
   }
 
   disconnect(): void {
@@ -100,7 +100,6 @@ export class WsClient {
     this.onMessageHandler = handler;
   }
 
-
   onRequestSession(handler: (sessionId: string) => Promise<boolean>): void {
     this.requestSessionHandler = handler;
   }
@@ -112,25 +111,25 @@ export class WsClient {
   }
 
   sendChatSessionsList(list: ChatSessionsList): void {
-    this.send(createMessage("chat_sessions_list", list));
+    this.send(createMessage('chat_sessions_list', list));
   }
 
   sendChatSessionUpdate(update: ChatSessionUpdate): void {
-    this.send(createMessage("chat_session_update", update));
+    this.send(createMessage('chat_session_update', update));
   }
 
   sendChatEditingState(state: ChatEditingState): void {
-    this.send(createMessage("chat_editing_state", state));
+    this.send(createMessage('chat_editing_state', state));
   }
 
   sendExtensionStatus(status: ExtensionStatus): void {
-    this.send(createMessage("extension_status", status));
+    this.send(createMessage('extension_status', status));
   }
 
   private startPing(): void {
     this.stopPing();
     this.pingInterval = setInterval(() => {
-      this.send(createMessage("ping", {}));
+      this.send(createMessage('ping', {}));
     }, 30000);
   }
 
@@ -163,56 +162,60 @@ export class WsClient {
   private async handleIncoming(message: WsMessage): Promise<void> {
     let ack: CommandAck | null = null;
     switch (message.type) {
-      case "send_message": {
+      case 'send_message': {
         const data = message.data as SendMessageCommand;
         const result = await sendMessage(data.prompt);
         ack = { requestId: message.id, success: result.success, error: result.error };
         break;
       }
-      case "accept_all_edits": {
+      case 'accept_all_edits': {
         const result = await acceptAllEdits();
         ack = { requestId: message.id, success: result.success, error: result.error };
         break;
       }
-      case "reject_all_edits": {
+      case 'reject_all_edits': {
         const result = await rejectAllEdits();
         ack = { requestId: message.id, success: result.success, error: result.error };
         break;
       }
-      case "accept_file_edit": {
+      case 'accept_file_edit': {
         const data = message.data as FileEditCommand;
         const result = await acceptFileEdit(data.filePath);
         ack = { requestId: message.id, success: result.success, error: result.error };
         break;
       }
-      case "reject_file_edit": {
+      case 'reject_file_edit': {
         const data = message.data as FileEditCommand;
         const result = await rejectFileEdit(data.filePath);
         ack = { requestId: message.id, success: result.success, error: result.error };
         break;
       }
-      case "continue_iteration": {
+      case 'continue_iteration': {
         const result = await continueIteration();
         ack = { requestId: message.id, success: result.success, error: result.error };
         break;
       }
-      case "cancel_request": {
+      case 'cancel_request': {
         const result = await cancelRequest();
         ack = { requestId: message.id, success: result.success, error: result.error };
         break;
       }
-      case "new_chat_session": {
+      case 'new_chat_session': {
         const result = await newChatSession();
         ack = { requestId: message.id, success: result.success, error: result.error };
         break;
       }
-      case "request_session": {
+      case 'request_session': {
         const data = message.data as RequestSessionCommand;
         if (this.requestSessionHandler) {
           const found = await this.requestSessionHandler(data.sessionId);
-          ack = { requestId: message.id, success: found, error: found ? undefined : "Session not found" };
+          ack = {
+            requestId: message.id,
+            success: found,
+            error: found ? undefined : 'Session not found',
+          };
         } else {
-          ack = { requestId: message.id, success: false, error: "No session handler registered" };
+          ack = { requestId: message.id, success: false, error: 'No session handler registered' };
         }
         break;
       }
@@ -221,7 +224,7 @@ export class WsClient {
     }
 
     if (ack) {
-      this.send(createMessage("command_ack", ack));
+      this.send(createMessage('command_ack', ack));
     }
   }
 }
