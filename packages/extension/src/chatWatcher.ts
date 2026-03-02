@@ -97,8 +97,12 @@ export class ChatWatcher {
   }
 
   stop(): void {
-    this.sessionWatchers.forEach((w) => w.close());
-    this.editingWatchers.forEach((w) => w.close());
+    this.sessionWatchers.forEach((w) => {
+      w.close();
+    });
+    this.editingWatchers.forEach((w) => {
+      w.close();
+    });
     this.sessionWatchers = [];
     this.editingWatchers = [];
     this.sessionsDirs = [];
@@ -149,10 +153,7 @@ export class ChatWatcher {
    * already contain chat sessions so that diagnostics are correct during dev
    * scenarios (extension-host vs normal window).
    */
-  private async findWorkspaceHashes(
-    storageRoot: string,
-    workspaceUri: string,
-  ): Promise<string[]> {
+  private async findWorkspaceHashes(storageRoot: string, workspaceUri: string): Promise<string[]> {
     const hashes: string[] = [];
     try {
       const entries = await fs.promises.readdir(storageRoot, { withFileTypes: true });

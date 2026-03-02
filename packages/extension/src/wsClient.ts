@@ -229,7 +229,11 @@ export class WsClient {
           await this.requestSessionsListHandler();
           ack = { requestId: message.id, success: true };
         } else {
-          ack = { requestId: message.id, success: false, error: 'No sessions list handler registered' };
+          ack = {
+            requestId: message.id,
+            success: false,
+            error: 'No sessions list handler registered',
+          };
         }
         break;
       }
