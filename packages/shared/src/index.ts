@@ -204,7 +204,7 @@ export interface ExtensionStatus {
 // Chat session file format (as persisted by VS Code)
 // ----------------------------------------------------------
 
-/** Shape of the JSON files in workspaceStorage/{hash}/chatSessions/{id}.json */
+/** Shape of the session data inside JSONL files in workspaceStorage/{hash}/chatSessions/{id}.jsonl */
 export interface VscodeChatSessionFile {
   version: number;
   sessionId: string;
