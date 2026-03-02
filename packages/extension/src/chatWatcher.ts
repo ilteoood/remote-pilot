@@ -90,8 +90,8 @@ export class ChatWatcher {
   }
 
   stop(): void {
-    this.disposeWatcher(this.sessionWatcher);
-    this.disposeWatcher(this.editingWatcher);
+    this.sessionWatcher?.close();
+    this.editingWatcher?.close();
     this.sessionWatcher = null;
     this.editingWatcher = null;
     this.debouncedReads.forEach((handle) => {
@@ -101,12 +101,6 @@ export class ChatWatcher {
     this.disposables.splice(0).forEach((disposable) => {
       disposable.dispose();
     });
-  }
-
-  private disposeWatcher(watcher: fs.FSWatcher | null): void {
-    if (watcher) {
-      watcher.close();
-    }
   }
 
   private getWorkspaceStorageRoot(): string {
