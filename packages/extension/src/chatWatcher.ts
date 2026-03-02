@@ -94,9 +94,13 @@ export class ChatWatcher {
     this.disposeWatcher(this.editingWatcher);
     this.sessionWatcher = null;
     this.editingWatcher = null;
-    this.debouncedReads.forEach((handle) => clearTimeout(handle.timer));
+    this.debouncedReads.forEach((handle) => {
+      clearTimeout(handle.timer);
+    });
     this.debouncedReads.clear();
-    this.disposables.splice(0).forEach((disposable) => disposable.dispose());
+    this.disposables.splice(0).forEach((disposable) => {
+      disposable.dispose();
+    });
   }
 
   private disposeWatcher(watcher: fs.FSWatcher | null): void {

@@ -46,7 +46,7 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
     <div className={styles.container}>
       {/* Mobile Sidebar Toggle */}
       <button
-        type='button'
+        type="button"
         className={styles.mobileToggle}
         onClick={() => setShowSidebar(!showSidebar)}
         aria-label={t('chatLayout.menu')}

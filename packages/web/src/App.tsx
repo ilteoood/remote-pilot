@@ -35,7 +35,7 @@ export const App: React.FC = () => {
         send('request_session', { sessionId: localActiveSessionId });
       }
     }
-  }, [localActiveSessionId, isPaired]);
+  }, [localActiveSessionId, isPaired, send, activeSession]);
 
   const handlePair = (code: string) => {
     setPairingError(undefined);

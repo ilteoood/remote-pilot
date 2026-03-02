@@ -1,7 +1,7 @@
 import http from 'node:http';
 import { WebSocketServer } from 'ws';
 
-import { HOST, getPort, pairingCode, SERVER_TOKEN } from './config.js';
+import { getPort, HOST, pairingCode, SERVER_TOKEN } from './config.js';
 import { createHttpApp } from './http.js';
 import { closeAllSockets, createWebSocketServer } from './websocket.js';
 
