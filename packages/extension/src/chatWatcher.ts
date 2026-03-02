@@ -480,7 +480,7 @@ export class ChatWatcher {
   }
 
   private toChatEditingState(file: VscodeChatEditingSessionFile): ChatEditingState | null {
-    const sessionId = file.sessionId || this.extractEditingSessionId();
+    const sessionId = file.sessionId;
     if (!sessionId) {
       return null;
     }
@@ -498,10 +498,6 @@ export class ChatWatcher {
     });
 
     return { sessionId, entries: mappedEntries };
-  }
-
-  private extractEditingSessionId(): string | undefined {
-    return undefined;
   }
 
   private toWorkspaceRelativePath(resource: string): string {

@@ -37,11 +37,6 @@ export const App: React.FC = () => {
     setPairingError(undefined);
     sessionStorage.setItem('pairing_code', code);
     send('pair_request', { pairingCode: code });
-
-    setTimeout(() => {
-      if (!isPaired) {
-      }
-    }, 5000);
   };
 
   const handleSendMessage = (text: string) => {

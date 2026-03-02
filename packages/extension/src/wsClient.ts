@@ -21,8 +21,6 @@ import {
   sendMessage,
 } from './copilotCommands';
 
-type MessageHandler = (message: WsMessage) => void;
-
 export class WsClient {
   private socket: WebSocket | null = null;
   private readonly serverPort: number;
@@ -31,7 +29,6 @@ export class WsClient {
   private reconnectTimer: NodeJS.Timeout | null = null;
   private reconnectDelay = 1000;
   private pingInterval: NodeJS.Timeout | null = null;
-  private onMessageHandler?: MessageHandler;
   private requestSessionHandler?: (sessionId: string) => Promise<boolean>;
   private requestSessionsListHandler?: () => Promise<void>;
   constructor(serverPort: number, serverToken: string, role = 'extension') {
@@ -65,9 +62,6 @@ export class WsClient {
         this.handleIncoming(message).catch(() => {
           return;
         });
-        if (this.onMessageHandler) {
-          this.onMessageHandler(message);
-        }
       } catch {
         return;
       }
@@ -94,10 +88,6 @@ export class WsClient {
 
   isConnected(): boolean {
     return !!this.socket && this.socket.readyState === WebSocket.OPEN;
-  }
-
-  onMessage(handler: MessageHandler): void {
-    this.onMessageHandler = handler;
   }
 
   onRequestSession(handler: (sessionId: string) => Promise<boolean>): void {

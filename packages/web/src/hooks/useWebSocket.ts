@@ -1,5 +1,4 @@
 import {
-  ChatEditingState,
   ChatSessionsList,
   ChatSessionUpdate,
   createMessage,
@@ -19,12 +18,10 @@ export function useWebSocket() {
   const reconnectDelayRef = useRef(RECONNECT_DELAY_START);
   const [isConnected, setIsConnected] = useState(false);
   const [isPaired, setIsPaired] = useState(false);
-  const [lastMessage, setLastMessage] = useState<WsMessage | null>(null);
   const [extensionStatus, setExtensionStatus] = useState<ExtensionStatus | null>(null);
   const [sessionsList, setSessionsList] = useState<ChatSessionsList | null>(null);
   // Cache session data keyed by sessionId so switching sessions is instant
   const [sessionDataMap, setSessionDataMap] = useState<Record<string, ChatSessionUpdate>>({});
-  const [editingState, setEditingState] = useState<ChatEditingState | null>(null);
 
   const send = useCallback(<T extends WsMessageType>(type: T, data: WsMessageDataMap[T]) => {
     if (socketRef.current?.readyState === WebSocket.OPEN) {
@@ -37,8 +34,6 @@ export function useWebSocket() {
 
   const handleMessage = useCallback(
     (message: WsMessage) => {
-      setLastMessage(message);
-
       switch (message.type) {
         case 'pair_response': {
           const data = message.data as WsMessageDataMap['pair_response'];
@@ -69,9 +64,6 @@ export function useWebSocket() {
           }));
           break;
         }
-        case 'chat_editing_state':
-          setEditingState(message.data as ChatEditingState);
-          break;
         case 'ping':
           send('pong', {});
           break;
@@ -171,11 +163,9 @@ export function useWebSocket() {
   return {
     isConnected,
     isPaired,
-    lastMessage,
     extensionStatus,
     sessionsList,
     sessionDataMap,
-    editingState,
     send,
   };
 }

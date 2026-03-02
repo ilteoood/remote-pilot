@@ -1,9 +1,9 @@
 import { WebSocket } from 'ws';
 import { ClientInfo, ClientRole } from './types.js';
 
-export const clientInfo = new WeakMap<WebSocket, ClientInfo>();
+const clientInfo = new WeakMap<WebSocket, ClientInfo>();
 export const sockets = new Set<WebSocket>();
-export const authTokens = new Set<string>();
+const authTokens = new Set<string>();
 
 let extensionSocket: WebSocket | null = null;
 
@@ -42,10 +42,6 @@ export function addAuthToken(token: string): void {
 
 export function hasAuthToken(token: string): boolean {
   return authTokens.has(token);
-}
-
-export function removeAuthToken(token: string): void {
-  authTokens.delete(token);
 }
 
 export function createClientInfo(role: ClientRole, paired: boolean, token?: string): ClientInfo {
