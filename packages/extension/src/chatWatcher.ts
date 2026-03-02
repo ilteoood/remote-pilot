@@ -165,7 +165,7 @@ export class ChatWatcher {
       return;
     }
     this.sessionWatcher = fs.watch(this.sessionsDir, (_event, filename) => {
-      if (!filename || !filename.endsWith('.json')) {
+      if (!filename?.endsWith('.json')) {
         return;
       }
       const fullPath = path.join(this.sessionsDir!, filename);
@@ -184,13 +184,11 @@ export class ChatWatcher {
       return;
     }
     this.editingWatcher = fs.watch(this.editingDir, { recursive: true }, (_event, filename) => {
-      if (!filename || !filename.endsWith('state.json')) {
+      if (!filename?.endsWith('state.json')) {
         return;
       }
       const fullPath = path.join(this.editingDir!, filename);
-      this.debounceRead(fullPath, async () => {
-        await this.handleEditingStateFile(fullPath);
-      });
+      this.debounceRead(fullPath, () => this.handleEditingStateFile(fullPath));
     });
   }
 
@@ -201,9 +199,7 @@ export class ChatWatcher {
     }
     const timer = setTimeout(() => {
       this.debouncedReads.delete(filePath);
-      action().catch(() => {
-        return;
-      });
+      action().catch(() => {});
     }, this.debounceMs);
     this.debouncedReads.set(filePath, { timer });
   }
@@ -213,9 +209,7 @@ export class ChatWatcher {
       const raw = await fs.promises.readFile(filePath, 'utf-8');
       const parsed = JSON.parse(raw) as VscodeChatSessionFile;
       const update = this.toChatSessionUpdate(parsed);
-      if (this.callbacks.onSessionUpdate) {
-        this.callbacks.onSessionUpdate(update);
-      }
+      this.callbacks.onSessionUpdate?.(update);
     } catch {
       return;
     }
@@ -226,8 +220,8 @@ export class ChatWatcher {
       const raw = await fs.promises.readFile(filePath, 'utf-8');
       const parsed = JSON.parse(raw) as VscodeChatEditingSessionFile;
       const state = this.toChatEditingState(parsed);
-      if (this.callbacks.onEditingState && state) {
-        this.callbacks.onEditingState(state);
+      if (state) {
+        this.callbacks.onEditingState?.(state);
       }
     } catch {
       return;
@@ -260,9 +254,7 @@ export class ChatWatcher {
         responseParts,
         isStreaming,
         isCanceled: request.isCanceled ?? false,
-        timestamp: request.timestamp
-          ? new Date(request.timestamp).toISOString()
-          : new Date().toISOString(),
+        timestamp: new Date(request.timestamp ?? Date.now()).toISOString(),
       };
     });
 
@@ -355,9 +347,7 @@ export class ChatWatcher {
         workspacePath: workspaceRoot.fsPath,
         sessions,
       };
-      if (this.callbacks.onSessionsList) {
-        this.callbacks.onSessionsList(list);
-      }
+      this.callbacks.onSessionsList?.(list);
     } catch {
       return;
     }
