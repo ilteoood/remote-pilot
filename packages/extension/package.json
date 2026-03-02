@@ -56,8 +56,8 @@
   "scripts": {
     "build": "tsdown --config tsup.config.ts",
     "dev": "tsdown --config tsup.config.ts --watch",
-    "prepackage": "mkdir -p dist/server && cp ../server/dist/index.js dist/server/index.js",
-    "package": "pnpm build && pnpm prepackage && vsce package --no-dependencies",
+    "prepackage": "mkdir -p dist/server dist/web && cp ../server/dist/index.js dist/server/index.js && cp -r ../web/dist/* dist/web/",
+    "package": "vsce package --no-dependencies",
     "clean": "rm -rf dist"
   },
   "dependencies": {
