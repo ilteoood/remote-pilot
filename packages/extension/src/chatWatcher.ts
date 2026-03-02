@@ -23,11 +23,12 @@ export class ChatWatcher {
   private readonly callbacks: ChatWatcherCallbacks;
   private readonly debounceMs: number;
   private readonly disposables: vscode.Disposable[] = [];
-  private sessionWatcher: fs.FSWatcher | null = null;
-  private editingWatcher: fs.FSWatcher | null = null;
-  private workspaceStoragePath: string | null = null;
-  private sessionsDir: string | null = null;
-  private editingDir: string | null = null;
+  // we may have more than one storage hash for the same workspace (e.g. normal vs dev-host)
+  private sessionWatchers: fs.FSWatcher[] = [];
+  private editingWatchers: fs.FSWatcher[] = [];
+  private workspaceStoragePaths: string[] = []; // list of matched hashes
+  private sessionsDirs: string[] = [];
+  private editingDirs: string[] = [];
   private debouncedReads = new Map<string, DebounceHandle>();
 
   constructor(callbacks: ChatWatcherCallbacks, debounceMs = 500) {
@@ -42,14 +43,17 @@ export class ChatWatcher {
     }
 
     const storageRoot = this.getWorkspaceStorageRoot();
-    const workspaceHash = await this.findWorkspaceHash(storageRoot, workspaceRoot.toString());
-    if (!workspaceHash) {
+    const workspaceHashes = await this.findWorkspaceHashes(storageRoot, workspaceRoot.toString());
+    if (workspaceHashes.length === 0) {
       return;
     }
 
-    this.workspaceStoragePath = path.join(storageRoot, workspaceHash);
-    this.sessionsDir = path.join(this.workspaceStoragePath, 'chatSessions');
-    this.editingDir = path.join(this.workspaceStoragePath, 'chatEditingSessions');
+    this.workspaceStoragePaths = workspaceHashes.map((h) => path.join(storageRoot, h));
+    this.sessionsDirs = this.workspaceStoragePaths.map((p) => path.join(p, 'chatSessions'));
+    this.editingDirs = this.workspaceStoragePaths.map((p) => path.join(p, 'chatEditingSessions'));
+    console.log('[ChatWatcher] workspaceHashes', workspaceHashes);
+    console.log('[ChatWatcher] sessionsDirs', this.sessionsDirs);
+    console.log('[ChatWatcher] editingDirs', this.editingDirs);
 
     this.watchSessions();
     this.watchEditingSessions();
@@ -61,27 +65,30 @@ export class ChatWatcher {
    * Used when the web client requests a particular session.
    */
   async emitSessionById(sessionId: string): Promise<boolean> {
-    if (!this.sessionsDir) {
+    if (this.sessionsDirs.length === 0) {
       return false;
     }
     try {
-      const files = await fs.promises.readdir(this.sessionsDir);
-      for (const file of files) {
-        if (!file.endsWith('.json')) {
-          continue;
-        }
-        const fullPath = path.join(this.sessionsDir, file);
+      for (const dir of this.sessionsDirs) {
         try {
-          const raw = await fs.promises.readFile(fullPath, 'utf-8');
-          const parsed = JSON.parse(raw) as VscodeChatSessionFile;
-          if (parsed.sessionId === sessionId) {
-            const update = this.toChatSessionUpdate(parsed);
-            if (this.callbacks.onSessionUpdate) {
-              this.callbacks.onSessionUpdate(update);
+          const files = await fs.promises.readdir(dir);
+          for (const file of files) {
+            if (!file.match(/\.jsonl?$/)) {
+              continue;
             }
-            return true;
+            const fullPath = path.join(dir, file);
+            const parsed = await this.parseSessionFile(fullPath);
+            if (parsed && parsed.sessionId === sessionId) {
+              const update = this.toChatSessionUpdate(parsed);
+              if (this.callbacks.onSessionUpdate) {
+                this.callbacks.onSessionUpdate(update);
+              }
+              return true;
+            }
           }
-        } catch {}
+        } catch {
+          // ignore this directory
+        }
       }
       return false;
     } catch {
@@ -90,10 +97,14 @@ export class ChatWatcher {
   }
 
   stop(): void {
-    this.sessionWatcher?.close();
-    this.editingWatcher?.close();
-    this.sessionWatcher = null;
-    this.editingWatcher = null;
+    this.sessionWatchers.forEach((w) => w.close());
+    this.editingWatchers.forEach((w) => w.close());
+    this.sessionWatchers = [];
+    this.editingWatchers = [];
+    this.sessionsDirs = [];
+    this.editingDirs = [];
+    this.workspaceStoragePaths = [];
+
     this.debouncedReads.forEach((handle) => {
       clearTimeout(handle.timer);
     });
@@ -132,10 +143,17 @@ export class ChatWatcher {
     }
   }
 
-  private async findWorkspaceHash(
+  /**
+   * Returns all storage hash directories whose workspace.json matches the
+   * provided URI.  When multiple hashes exist we prefer the one(s) that
+   * already contain chat sessions so that diagnostics are correct during dev
+   * scenarios (extension-host vs normal window).
+   */
+  private async findWorkspaceHashes(
     storageRoot: string,
     workspaceUri: string,
-  ): Promise<string | null> {
+  ): Promise<string[]> {
+    const hashes: string[] = [];
     try {
       const entries = await fs.promises.readdir(storageRoot, { withFileTypes: true });
       for (const entry of entries) {
@@ -147,49 +165,79 @@ export class ChatWatcher {
           const raw = await fs.promises.readFile(workspaceJson, 'utf-8');
           const parsed = JSON.parse(raw) as { folder?: string };
           if (parsed.folder === workspaceUri) {
-            return entry.name;
+            hashes.push(entry.name);
           }
         } catch {}
       }
-      return null;
     } catch {
-      return null;
+      // ignore
     }
+
+    if (hashes.length <= 1) {
+      return hashes;
+    }
+
+    // if multiple hashes match, choose the one containing the largest number
+    // of session files. this ensures the dev-host storage (often empty) is
+    // ignored when the real workspace already has sessions.
+    const counts: Record<string, number> = {};
+    for (const h of hashes) {
+      const chatDir = path.join(storageRoot, h, 'chatSessions');
+      try {
+        const files = await fs.promises.readdir(chatDir);
+        counts[h] = files.filter((f) => f.match(/\.jsonl?$/)).length;
+      } catch {
+        counts[h] = 0;
+      }
+    }
+    hashes.sort((a, b) => (counts[b] || 0) - (counts[a] || 0));
+    // return all matches, sorted highest‑count first so that the one with
+    // the most sessions is used when choosing a single path elsewhere if
+    // needed.  emitSessionsList will iterate across all and dedupe.
+    return hashes;
   }
 
   private watchSessions(): void {
-    if (!this.sessionsDir) {
-      return;
-    }
-    if (!fs.existsSync(this.sessionsDir)) {
-      return;
-    }
-    this.sessionWatcher = fs.watch(this.sessionsDir, (_event, filename) => {
-      if (!filename?.endsWith('.json')) {
-        return;
+    for (const dir of this.sessionsDirs) {
+      if (!dir || !fs.existsSync(dir)) {
+        continue;
       }
-      const fullPath = path.join(this.sessionsDir!, filename);
-      this.debounceRead(fullPath, async () => {
-        await this.handleSessionFile(fullPath);
-        await this.emitSessionsList();
-      });
-    });
+      try {
+        const watcher = fs.watch(dir, (_event, filename) => {
+          if (!filename?.match(/\.jsonl?$/)) {
+            return;
+          }
+          const fullPath = path.join(dir, filename);
+          this.debounceRead(fullPath, async () => {
+            await this.handleSessionFile(fullPath);
+            await this.emitSessionsList();
+          });
+        });
+        this.sessionWatchers.push(watcher);
+      } catch {
+        // ignore failures to watch
+      }
+    }
   }
 
   private watchEditingSessions(): void {
-    if (!this.editingDir) {
-      return;
-    }
-    if (!fs.existsSync(this.editingDir)) {
-      return;
-    }
-    this.editingWatcher = fs.watch(this.editingDir, { recursive: true }, (_event, filename) => {
-      if (!filename?.endsWith('state.json')) {
-        return;
+    for (const dir of this.editingDirs) {
+      if (!dir || !fs.existsSync(dir)) {
+        continue;
       }
-      const fullPath = path.join(this.editingDir!, filename);
-      this.debounceRead(fullPath, () => this.handleEditingStateFile(fullPath));
-    });
+      try {
+        const watcher = fs.watch(dir, { recursive: true }, (_event, filename) => {
+          if (!filename?.endsWith('state.json')) {
+            return;
+          }
+          const fullPath = path.join(dir, filename);
+          this.debounceRead(fullPath, () => this.handleEditingStateFile(fullPath));
+        });
+        this.editingWatchers.push(watcher);
+      } catch {
+        // ignore
+      }
+    }
   }
 
   private debounceRead(filePath: string, action: () => Promise<void>): void {
@@ -205,14 +253,12 @@ export class ChatWatcher {
   }
 
   private async handleSessionFile(filePath: string): Promise<void> {
-    try {
-      const raw = await fs.promises.readFile(filePath, 'utf-8');
-      const parsed = JSON.parse(raw) as VscodeChatSessionFile;
-      const update = this.toChatSessionUpdate(parsed);
-      this.callbacks.onSessionUpdate?.(update);
-    } catch {
+    const parsed = await this.parseSessionFile(filePath);
+    if (!parsed) {
       return;
     }
+    const update = this.toChatSessionUpdate(parsed);
+    this.callbacks.onSessionUpdate?.(update);
   }
 
   private async handleEditingStateFile(filePath: string): Promise<void> {
@@ -225,6 +271,41 @@ export class ChatWatcher {
       }
     } catch {
       return;
+    }
+  }
+
+  /**
+   * Read a session file which may be either plain JSON or newline-delimited (jsonl).
+   * For jsonl the last non-empty line represents the current session state.
+   */
+  private async parseSessionFile(filePath: string): Promise<VscodeChatSessionFile | null> {
+    try {
+      const raw = await fs.promises.readFile(filePath, 'utf-8');
+      // split into lines and drop empties
+      const lines = raw.split(/\r?\n/).filter((l) => l.trim().length > 0);
+      if (lines.length === 0) {
+        return null;
+      }
+      // iterate backwards to find the last line that parses as JSON
+      for (let i = lines.length - 1; i >= 0; --i) {
+        const line = lines[i];
+        try {
+          const parsed = JSON.parse(line) as any;
+          // some .jsonl files wrap the session in a `{ kind:0, v: {...} }` envelope
+          if (parsed && typeof parsed === 'object' && parsed.v && parsed.v.sessionId) {
+            return parsed.v as VscodeChatSessionFile;
+          }
+          if (parsed && parsed.sessionId) {
+            return parsed as VscodeChatSessionFile;
+          }
+          // otherwise continue looking backwards
+        } catch {
+          // try the previous one
+        }
+      }
+      return null;
+    } catch {
+      return null;
     }
   }
 
@@ -301,41 +382,53 @@ export class ChatWatcher {
   }
 
   public async emitSessionsList(): Promise<void> {
-    if (!this.sessionsDir) {
+    if (this.sessionsDirs.length === 0) {
       return;
     }
     try {
-      const files = await fs.promises.readdir(this.sessionsDir);
-      const sessions = [] as ChatSessionsList['sessions'];
-      for (const file of files) {
-        if (!file.endsWith('.json')) {
-          continue;
-        }
-        const fullPath = path.join(this.sessionsDir, file);
+      const sessions: ChatSessionsList['sessions'] = [];
+      const seen = new Set<string>();
+      for (const dir of this.sessionsDirs) {
         try {
-          const raw = await fs.promises.readFile(fullPath, 'utf-8');
-          const parsed = JSON.parse(raw) as VscodeChatSessionFile;
-          const firstRequest = parsed.requests[0];
-          const title = firstRequest
-            ? typeof firstRequest.message === 'string'
-              ? firstRequest.message
-              : firstRequest.message.text
-            : '';
-          const createdAt = parsed.creationDate
-            ? new Date(parsed.creationDate).toISOString()
-            : new Date().toISOString();
-          const lastMessageAt = parsed.lastMessageDate
-            ? new Date(parsed.lastMessageDate).toISOString()
-            : createdAt;
-          sessions.push({
-            sessionId: parsed.sessionId,
-            title,
-            createdAt,
-            lastMessageAt,
-            requestCount: parsed.requests.length,
-            hasPendingEdits: parsed.hasPendingEdits ?? false,
-          });
-        } catch {}
+          const files = await fs.promises.readdir(dir);
+          for (const file of files) {
+            if (!file.match(/\.jsonl?$/)) {
+              continue;
+            }
+            const fullPath = path.join(dir, file);
+            const parsed = await this.parseSessionFile(fullPath);
+            if (!parsed) {
+              console.log('[ChatWatcher] failed to parse', fullPath);
+              continue;
+            }
+            if (seen.has(parsed.sessionId)) {
+              continue;
+            }
+            seen.add(parsed.sessionId);
+            const firstRequest = parsed.requests[0];
+            const title = firstRequest
+              ? typeof firstRequest.message === 'string'
+                ? firstRequest.message
+                : firstRequest.message.text
+              : '';
+            const createdAt = parsed.creationDate
+              ? new Date(parsed.creationDate).toISOString()
+              : new Date().toISOString();
+            const lastMessageAt = parsed.lastMessageDate
+              ? new Date(parsed.lastMessageDate).toISOString()
+              : createdAt;
+            sessions.push({
+              sessionId: parsed.sessionId,
+              title,
+              createdAt,
+              lastMessageAt,
+              requestCount: parsed.requests.length,
+              hasPendingEdits: parsed.hasPendingEdits ?? false,
+            });
+          }
+        } catch {
+          // ignore this dir
+        }
       }
 
       const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri;
@@ -347,6 +440,7 @@ export class ChatWatcher {
         workspacePath: workspaceRoot.fsPath,
         sessions,
       };
+      console.log(`[ChatWatcher] emitting sessions list (${sessions.length} sessions)`);
       this.callbacks.onSessionsList?.(list);
     } catch {
       return;
