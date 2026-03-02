@@ -31,9 +31,9 @@ export const ChatView: React.FC<ChatViewProps> = ({ session }) => {
     <div className={styles.container}>
       {session.requests.map((req) => (
         <React.Fragment key={req.requestId}>
-          <MessageBubble content={req.message} />
+          <MessageBubble userRole="user" content={req.message} />
           {(req.responseParts.length > 0 || req.isStreaming) && (
-            <MessageBubble parts={req.responseParts} />
+            <MessageBubble userRole="assistant" parts={req.responseParts} />
           )}
         </React.Fragment>
       ))}

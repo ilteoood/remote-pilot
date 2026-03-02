@@ -6,13 +6,13 @@ import remarkGfm from 'remark-gfm';
 import styles from './MessageBubble.module.css';
 
 interface MessageBubbleProps {
-  role: 'user' | 'assistant';
+  userRole: 'user' | 'assistant';
   content?: string;
   parts?: ChatResponsePart[];
 }
 
-export const MessageBubble: React.FC<MessageBubbleProps> = ({ role, content, parts }) => {
-  const isUser = role === 'user';
+export const MessageBubble: React.FC<MessageBubbleProps> = ({ userRole, content, parts }) => {
+  const isUser = userRole === 'user';
 
   return (
     <div className={clsx('flex', isUser ? 'justify-end' : 'justify-start', styles.container)}>
