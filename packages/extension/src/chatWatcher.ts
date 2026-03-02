@@ -5,6 +5,7 @@ import {
   ChatSessionsList,
   ChatSessionUpdate,
   VscodeChatEditingSessionFile,
+  VscodeChatRequestData,
   VscodeChatSessionFile,
 } from '@remote-pilot/shared';
 import * as vscode from 'vscode';
@@ -319,7 +320,20 @@ export class ChatWatcher {
 
         // kind=1 or kind=2: incremental patch – apply to the current snapshot
         if ((parsed.kind === 1 || parsed.kind === 2) && session && Array.isArray(parsed.k)) {
-          this.applyPatch(session as unknown as Record<string, unknown>, parsed.k as (string | number)[], parsed.v);
+          const keyPath = parsed.k as (string | number)[];
+
+          // Special handling for k=['requests']: VS Code writes each new request
+          // as a separate kind=2 patch with the full requests array containing only
+          // that request. We merge by requestId to accumulate the full history.
+          if (
+            keyPath.length === 1 &&
+            keyPath[0] === 'requests' &&
+            Array.isArray(parsed.v)
+          ) {
+            this.mergeRequests(session, parsed.v as Record<string, unknown>[]);
+          } else {
+            this.applyPatch(session as unknown as Record<string, unknown>, keyPath, parsed.v);
+          }
           continue;
         }
 
@@ -353,6 +367,32 @@ export class ChatWatcher {
     }
     if (obj != null && typeof obj === 'object') {
       (obj as Record<string | number, unknown>)[keyPath[keyPath.length - 1]] = value;
+    }
+  }
+
+  /**
+   * Merge incoming requests into the session's requests array by requestId.
+   * VS Code writes each new request as a kind=2 patch with k=['requests']
+   * containing only the new/updated request(s). We need to accumulate them.
+   */
+  private mergeRequests(session: VscodeChatSessionFile, incoming: Record<string, unknown>[]): void {
+    if (!Array.isArray(session.requests)) {
+      session.requests = [];
+    }
+
+    for (const req of incoming) {
+      const reqId = req.requestId as string | undefined;
+      if (!reqId) {
+        continue;
+      }
+      const existingIdx = session.requests.findIndex((r) => r.requestId === reqId);
+      if (existingIdx >= 0) {
+        // Update existing request with the new data
+        session.requests[existingIdx] = req as unknown as VscodeChatRequestData;
+      } else {
+        // Append new request
+        session.requests.push(req as unknown as VscodeChatRequestData);
+      }
     }
   }
 
