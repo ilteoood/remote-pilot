@@ -14,7 +14,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ session }) => {
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [session]);
+  }, []);
 
   if (!session) {
     return (

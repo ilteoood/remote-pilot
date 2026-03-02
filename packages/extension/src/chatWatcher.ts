@@ -325,11 +325,7 @@ export class ChatWatcher {
           // Special handling for k=['requests']: VS Code writes each new request
           // as a separate kind=2 patch with the full requests array containing only
           // that request. We merge by requestId to accumulate the full history.
-          if (
-            keyPath.length === 1 &&
-            keyPath[0] === 'requests' &&
-            Array.isArray(parsed.v)
-          ) {
+          if (keyPath.length === 1 && keyPath[0] === 'requests' && Array.isArray(parsed.v)) {
             this.mergeRequests(session, parsed.v as Record<string, unknown>[]);
           } else {
             this.applyPatch(session as unknown as Record<string, unknown>, keyPath, parsed.v);
@@ -340,7 +336,6 @@ export class ChatWatcher {
         // Plain JSON (no kind envelope)
         if (parsed.sessionId) {
           session = parsed as unknown as VscodeChatSessionFile;
-          continue;
         }
       }
 
@@ -353,7 +348,11 @@ export class ChatWatcher {
   /**
    * Apply a JSONL incremental patch: walk the key path and set the value.
    */
-  private applyPatch(target: Record<string, unknown>, keyPath: (string | number)[], value: unknown): void {
+  private applyPatch(
+    target: Record<string, unknown>,
+    keyPath: (string | number)[],
+    value: unknown,
+  ): void {
     if (keyPath.length === 0) {
       return;
     }
@@ -413,46 +412,57 @@ export class ChatWatcher {
   private toChatSessionUpdate(session: VscodeChatSessionFile): ChatSessionUpdate {
     const requests = session.requests.map((request) => {
       const message = typeof request.message === 'string' ? request.message : request.message.text;
-      const responseParts = request.response.map((item) => {
-        const kind = item.kind ?? '';
+      const responseParts = request.response
+        .map((item) => {
+          const kind = item.kind ?? '';
 
-        // Tool invocations – identified by explicit kind or presence of toolId/toolCallId
-        if (kind === 'toolInvocationSerialized' || item.toolId || item.toolCallId) {
-          const toolStatus: 'completed' | 'running' = item.isComplete ? 'completed' : 'running';
-          // Prefer pastTenseMessage when complete, otherwise invocationMessage
-          const displayMessage =
-            (item.isComplete ? this.extractString(item.pastTenseMessage) : '') ||
-            this.extractString(item.invocationMessage) ||
-            this.extractString(item.pastTenseMessage) ||
-            '';
-          return {
-            kind: 'tool_invocation' as const,
-            content: displayMessage,
-            toolName: item.toolId || item.toolCallId || '',
-            toolStatus,
-          };
-        }
-
-        // Thinking blocks
-        if (kind === 'thinking') {
-          return { kind: 'markdown' as const, content: this.extractString(item.value) };
-        }
-
-        // Markdown content – items without a kind, or with kind=markdownContent
-        if (!kind || kind === 'markdownContent') {
-          const text = this.extractString(item.value);
-          if (text) {
-            return { kind: 'markdown' as const, content: text };
+          // Tool invocations – identified by explicit kind or presence of toolId/toolCallId
+          if (kind === 'toolInvocationSerialized' || item.toolId || item.toolCallId) {
+            const toolStatus: 'completed' | 'running' = item.isComplete ? 'completed' : 'running';
+            // Prefer pastTenseMessage when complete, otherwise invocationMessage
+            const displayMessage =
+              (item.isComplete ? this.extractString(item.pastTenseMessage) : '') ||
+              this.extractString(item.invocationMessage) ||
+              this.extractString(item.pastTenseMessage) ||
+              '';
+            return {
+              kind: 'tool_invocation' as const,
+              content: displayMessage,
+              toolName: item.toolId || item.toolCallId || '',
+              toolStatus,
+            };
           }
-        }
 
-        // Skip UI-only items like inlineReference, textEditGroup, undoStop, codeblockUri, etc.
-        if (['inlineReference', 'textEditGroup', 'undoStop', 'codeblockUri', 'confirmation', 'progressTaskSerialized'].includes(kind)) {
-          return null;
-        }
+          // Thinking blocks
+          if (kind === 'thinking') {
+            return { kind: 'markdown' as const, content: this.extractString(item.value) };
+          }
 
-        return { kind: 'unknown' as const, content: JSON.stringify(item) };
-      }).filter((part): part is NonNullable<typeof part> => part != null);
+          // Markdown content – items without a kind, or with kind=markdownContent
+          if (!kind || kind === 'markdownContent') {
+            const text = this.extractString(item.value);
+            if (text) {
+              return { kind: 'markdown' as const, content: text };
+            }
+          }
+
+          // Skip UI-only items like inlineReference, textEditGroup, undoStop, codeblockUri, etc.
+          if (
+            [
+              'inlineReference',
+              'textEditGroup',
+              'undoStop',
+              'codeblockUri',
+              'confirmation',
+              'progressTaskSerialized',
+            ].includes(kind)
+          ) {
+            return null;
+          }
+
+          return { kind: 'unknown' as const, content: JSON.stringify(item) };
+        })
+        .filter((part): part is NonNullable<typeof part> => part != null);
 
       const lastResponse = request.response[request.response.length - 1];
       const isStreaming = lastResponse ? lastResponse.isComplete === false : false;
@@ -556,9 +566,7 @@ export class ChatWatcher {
                 lastMessageTs = req.timestamp;
               }
             }
-            const lastMessageAt = lastMessageTs
-              ? new Date(lastMessageTs).toISOString()
-              : createdAt;
+            const lastMessageAt = lastMessageTs ? new Date(lastMessageTs).toISOString() : createdAt;
             sessions.push({
               sessionId: parsed.sessionId,
               title,
@@ -574,7 +582,9 @@ export class ChatWatcher {
       }
 
       // Sort sessions by lastMessageAt descending (newest first) to match VS Code ordering
-      sessions.sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
+      sessions.sort(
+        (a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime(),
+      );
 
       const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri;
       if (!workspaceRoot) {

@@ -15,7 +15,9 @@ export const App: React.FC = () => {
   const [localActiveSessionId, setLocalActiveSessionId] = useState<string | undefined>();
 
   // Derive activeSession from the cache
-  const activeSession = localActiveSessionId ? sessionDataMap[localActiveSessionId] ?? null : null;
+  const activeSession = localActiveSessionId
+    ? (sessionDataMap[localActiveSessionId] ?? null)
+    : null;
 
   // Auto-select the first session if none is selected
   useEffect(() => {
