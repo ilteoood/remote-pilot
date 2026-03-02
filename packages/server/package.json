@@ -2,7 +2,6 @@
   "name": "@remote-pilot/server",
   "version": "0.0.1",
   "private": true,
-
   "main": "./dist/index.js",
   "scripts": {
     "build": "tsdown --config tsup.config.ts",
@@ -13,6 +12,7 @@
   "dependencies": {
     "@remote-pilot/shared": "workspace:*",
     "express": "^5.1.0",
+    "portfinder": "^1.0.38",
     "ws": "^8.18.0"
   },
   "devDependencies": {

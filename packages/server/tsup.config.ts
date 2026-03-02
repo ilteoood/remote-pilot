@@ -8,5 +8,5 @@ export default defineConfig({
   clean: true,
   sourcemap: true,
   dts: true,
-  noExternal: ['@remote-pilot/shared', 'express', 'ws'],
+  noExternal: ['@remote-pilot/shared', 'express', 'ws', 'portfinder'],
 });
