@@ -1,17 +1,20 @@
 import http, { IncomingMessage } from 'node:http';
+import { createMessage } from '@remote-pilot/shared';
 import { WebSocket, WebSocketServer } from 'ws';
 import {
   addSocket,
   createClientInfo,
+  getClientInfo,
   getExtensionSocket,
   hasAuthToken,
+  isExtensionConnected,
   removeSocket,
   setClientInfo,
   setExtensionSocket,
   sockets,
 } from './client.js';
 import { SERVER_TOKEN } from './config.js';
-import { handleMessage, parseMessage } from './messaging.js';
+import { broadcastToWeb, handleMessage, parseMessage } from './messaging.js';
 import { ClientRole } from './types.js';
 
 function isLanIp(hostname: string): boolean {
@@ -66,6 +69,8 @@ export function createWebSocketServer(server: http.Server): WebSocketServer {
       }
       setExtensionSocket(ws);
       setClientInfo(ws, createClientInfo('extension', true, token));
+      // Notify web clients that extension is now connected
+      broadcastToWeb(createMessage('extension_status', { connected: true }) as never);
     } else if (role === 'web') {
       if (token) {
         if (!hasAuthToken(token)) {
@@ -73,6 +78,11 @@ export function createWebSocketServer(server: http.Server): WebSocketServer {
           return;
         }
         setClientInfo(ws, createClientInfo('web', true, token));
+        // Send current extension status on reconnect
+        const statusMsg = createMessage('extension_status', { connected: isExtensionConnected() });
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify(statusMsg));
+        }
       } else {
         setClientInfo(ws, createClientInfo('web', false));
       }
@@ -91,7 +101,12 @@ export function createWebSocketServer(server: http.Server): WebSocketServer {
     });
 
     ws.on('close', () => {
+      const info = getClientInfo(ws);
       removeSocket(ws);
+      // If the extension disconnected, notify web clients
+      if (info?.role === 'extension') {
+        broadcastToWeb(createMessage('extension_status', { connected: false }) as never);
+      }
     });
 
     ws.on('error', (error) => {

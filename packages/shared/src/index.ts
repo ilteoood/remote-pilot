@@ -194,10 +194,6 @@ export interface CommandAck {
 /** Extension → Server → Web: extension connection/capability status */
 export interface ExtensionStatus {
   connected: boolean;
-  workspaceName: string;
-  workspacePath: string;
-  /** Active chat session ID (if any) */
-  activeSessionId?: string;
 }
 
 // ----------------------------------------------------------

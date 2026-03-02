@@ -6,6 +6,7 @@ import {
   getClientInfo,
   getExtensionSocket,
   hasAuthToken,
+  isExtensionConnected,
   setClientInfo,
   sockets,
 } from './client.js';
@@ -123,6 +124,8 @@ function handleWebMessage(ws: WebSocket, message: AnyWsMessage): void {
       const newInfo = { ...info, paired: true, token };
       setClientInfo(ws, newInfo);
       sendMessage(ws, createMessage('pair_response', { success: true, token }));
+      // Immediately tell the web client about extension connectivity
+      sendMessage(ws, createMessage('extension_status', { connected: isExtensionConnected() }));
     } else {
       sendMessage(
         ws,

@@ -4,7 +4,6 @@ import {
   ChatSessionUpdate,
   CommandAck,
   createMessage,
-  ExtensionStatus,
   FileEditCommand,
   RequestSessionCommand,
   SendMessageCommand,
@@ -125,10 +124,6 @@ export class WsClient {
 
   sendChatEditingState(state: ChatEditingState): void {
     this.send(createMessage('chat_editing_state', state));
-  }
-
-  sendExtensionStatus(status: ExtensionStatus): void {
-    this.send(createMessage('extension_status', status));
   }
 
   private startPing(): void {

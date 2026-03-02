@@ -24,13 +24,6 @@ export const App: React.FC = () => {
     }
   }, [sessionsList, localActiveSessionId]);
 
-  // When using extension's active session hint
-  useEffect(() => {
-    if (extensionStatus?.activeSessionId && !localActiveSessionId) {
-      setLocalActiveSessionId(extensionStatus.activeSessionId);
-    }
-  }, [extensionStatus, localActiveSessionId]);
-
   // Request session data when active session changes (and we don't have it cached)
   useEffect(() => {
     if (localActiveSessionId && isPaired && !sessionDataMap[localActiveSessionId]) {
