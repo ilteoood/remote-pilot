@@ -30,6 +30,7 @@ export const webToExtensionTypes: WsMessageType[] = [
   'cancel_request',
   'new_chat_session',
   'request_session',
+  'request_sessions_list',
 ];
 
 export const allTypes = new Set<WsMessageType>([
@@ -47,6 +48,7 @@ export const allTypes = new Set<WsMessageType>([
   'cancel_request',
   'new_chat_session',
   'request_session',
+  'request_sessions_list',
   'command_ack',
   'ping',
   'pong',

@@ -34,6 +34,7 @@ export class WsClient {
   private pingInterval: NodeJS.Timeout | null = null;
   private onMessageHandler?: MessageHandler;
   private requestSessionHandler?: (sessionId: string) => Promise<boolean>;
+  private requestSessionsListHandler?: () => Promise<void>;
   constructor(serverPort: number, serverToken: string, role = 'extension') {
     this.serverPort = serverPort;
     this.serverToken = serverToken;
@@ -102,6 +103,10 @@ export class WsClient {
 
   onRequestSession(handler: (sessionId: string) => Promise<boolean>): void {
     this.requestSessionHandler = handler;
+  }
+
+  onRequestSessionsList(handler: () => Promise<void>): void {
+    this.requestSessionsListHandler = handler;
   }
   send(message: WsMessage): void {
     if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
@@ -216,6 +221,15 @@ export class WsClient {
           };
         } else {
           ack = { requestId: message.id, success: false, error: 'No session handler registered' };
+        }
+        break;
+      }
+      case 'request_sessions_list': {
+        if (this.requestSessionsListHandler) {
+          await this.requestSessionsListHandler();
+          ack = { requestId: message.id, success: true };
+        } else {
+          ack = { requestId: message.id, success: false, error: 'No sessions list handler registered' };
         }
         break;
       }

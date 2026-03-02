@@ -39,6 +39,7 @@ export type WsMessageType =
   | 'cancel_request'
   | 'new_chat_session'
   | 'request_session'
+  | 'request_sessions_list'
   // Command acknowledgement (extension → server → web)
   | 'command_ack'
   // Connection state
@@ -70,6 +71,7 @@ export interface WsMessageDataMap {
   cancel_request: EmptyPayload;
   new_chat_session: EmptyPayload;
   request_session: RequestSessionCommand;
+  request_sessions_list: EmptyPayload;
 
   // Ack
   command_ack: CommandAck;

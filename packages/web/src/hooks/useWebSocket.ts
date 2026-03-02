@@ -46,6 +46,7 @@ export function useWebSocket() {
             if (data.token) {
               sessionStorage.setItem('auth_token', data.token);
             }
+            send('request_sessions_list', {});
           } else {
             console.error('Pairing failed:', data.error);
             setIsPaired(false);

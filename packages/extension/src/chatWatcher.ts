@@ -314,7 +314,7 @@ export class ChatWatcher {
     }
   }
 
-  private async emitSessionsList(): Promise<void> {
+  public async emitSessionsList(): Promise<void> {
     if (!this.sessionsDir) {
       return;
     }

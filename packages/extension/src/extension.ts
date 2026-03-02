@@ -199,6 +199,14 @@ async function startRemotePilot(): Promise<void> {
       return chatWatcher.emitSessionById(sessionId);
     });
 
+    // Wire up request_sessions_list: when web client requests the sessions list
+    wsClient.onRequestSessionsList(() => {
+      if (!chatWatcher) {
+        return Promise.resolve();
+      }
+      return chatWatcher.emitSessionsList();
+    });
+
     await chatWatcher.start();
 
     updateStatus(true);
