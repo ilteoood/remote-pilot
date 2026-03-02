@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from './App.module.css';
 import { ChatLayout } from './components/ChatLayout/ChatLayout';
@@ -8,34 +8,35 @@ import './styles/global.css';
 
 export const App: React.FC = () => {
   const { t } = useTranslation();
-  const { isConnected, isPaired, extensionStatus, sessionsList, activeSession, send } =
+  const { isConnected, isPaired, extensionStatus, sessionsList, sessionDataMap, send } =
     useWebSocket();
 
   const [pairingError, setPairingError] = useState<string | undefined>();
   const [localActiveSessionId, setLocalActiveSessionId] = useState<string | undefined>();
 
-  useEffect(() => {
-    if (activeSession?.sessionId) {
-      setLocalActiveSessionId(activeSession.sessionId);
-    } else if (extensionStatus?.activeSessionId) {
-      setLocalActiveSessionId(extensionStatus.activeSessionId);
-    }
-  }, [activeSession, extensionStatus]);
+  // Derive activeSession from the cache
+  const activeSession = localActiveSessionId ? sessionDataMap[localActiveSessionId] ?? null : null;
 
+  // Auto-select the first session if none is selected
   useEffect(() => {
     if (!localActiveSessionId && sessionsList?.sessions?.length) {
-      const first = sessionsList.sessions[0];
-      setLocalActiveSessionId(first.sessionId);
+      setLocalActiveSessionId(sessionsList.sessions[0].sessionId);
     }
   }, [sessionsList, localActiveSessionId]);
 
+  // When using extension's active session hint
   useEffect(() => {
-    if (localActiveSessionId && isPaired) {
-      if (!activeSession || activeSession.sessionId !== localActiveSessionId) {
-        send('request_session', { sessionId: localActiveSessionId });
-      }
+    if (extensionStatus?.activeSessionId && !localActiveSessionId) {
+      setLocalActiveSessionId(extensionStatus.activeSessionId);
     }
-  }, [localActiveSessionId, isPaired, send, activeSession]);
+  }, [extensionStatus, localActiveSessionId]);
+
+  // Request session data when active session changes (and we don't have it cached)
+  useEffect(() => {
+    if (localActiveSessionId && isPaired && !sessionDataMap[localActiveSessionId]) {
+      send('request_session', { sessionId: localActiveSessionId });
+    }
+  }, [localActiveSessionId, isPaired, send, sessionDataMap]);
 
   const handlePair = (code: string) => {
     setPairingError(undefined);
@@ -74,6 +75,17 @@ export const App: React.FC = () => {
   const hasPendingEdits = !!sessionsList?.sessions.find((s) => s.sessionId === localActiveSessionId)
     ?.hasPendingEdits;
 
+  // When user clicks a session, always request fresh data from the extension
+  const handleSelectSession = useCallback(
+    (id: string) => {
+      setLocalActiveSessionId(id);
+      if (isPaired) {
+        send('request_session', { sessionId: id });
+      }
+    },
+    [isPaired, send],
+  );
+
   if (!isConnected) {
     return (
       <div className={styles.loadingContainer}>
@@ -95,7 +107,7 @@ export const App: React.FC = () => {
       isConnected={isConnected}
       isPaired={isPaired}
       hasPendingEdits={hasPendingEdits}
-      onSelectSession={setLocalActiveSessionId}
+      onSelectSession={handleSelectSession}
       onNewSession={handleNewSession}
       onSendMessage={handleSendMessage}
       onAcceptAll={handleAcceptAll}

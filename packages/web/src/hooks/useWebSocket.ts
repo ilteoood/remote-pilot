@@ -22,7 +22,8 @@ export function useWebSocket() {
   const [lastMessage, setLastMessage] = useState<WsMessage | null>(null);
   const [extensionStatus, setExtensionStatus] = useState<ExtensionStatus | null>(null);
   const [sessionsList, setSessionsList] = useState<ChatSessionsList | null>(null);
-  const [activeSession, setActiveSession] = useState<ChatSessionUpdate | null>(null);
+  // Cache session data keyed by sessionId so switching sessions is instant
+  const [sessionDataMap, setSessionDataMap] = useState<Record<string, ChatSessionUpdate>>({});
   const [editingState, setEditingState] = useState<ChatEditingState | null>(null);
 
   const send = useCallback(<T extends WsMessageType>(type: T, data: WsMessageDataMap[T]) => {
@@ -60,9 +61,14 @@ export function useWebSocket() {
         case 'chat_sessions_list':
           setSessionsList(message.data as ChatSessionsList);
           break;
-        case 'chat_session_update':
-          setActiveSession(message.data as ChatSessionUpdate);
+        case 'chat_session_update': {
+          const update = message.data as ChatSessionUpdate;
+          setSessionDataMap((prev) => ({
+            ...prev,
+            [update.sessionId]: update,
+          }));
           break;
+        }
         case 'chat_editing_state':
           setEditingState(message.data as ChatEditingState);
           break;
@@ -82,7 +88,13 @@ export function useWebSocket() {
     }
 
     const port = window.location.port || '3847';
-    const wsUrl = `ws://${window.location.hostname}:${port}?role=web`;
+    const storedToken = sessionStorage.getItem('auth_token');
+
+    // If we have a stored token, pass it in the URL so the server auto-pairs us
+    let wsUrl = `ws://${window.location.hostname}:${port}?role=web`;
+    if (storedToken) {
+      wsUrl += `&token=${encodeURIComponent(storedToken)}`;
+    }
 
     console.log(`Connecting to ${wsUrl}...`);
     const ws = new WebSocket(wsUrl);
@@ -93,23 +105,19 @@ export function useWebSocket() {
       setIsConnected(true);
       reconnectDelayRef.current = RECONNECT_DELAY_START;
 
-      // Try to re-pair if we have a token or code
-      const storedCode = sessionStorage.getItem('pairing_code');
-      const storedToken = sessionStorage.getItem('auth_token');
-
       if (storedToken) {
-        // We don't have a specific "auth with token" message yet in the protocol based on the shared types provided.
-        // The PairRequest only takes a pairingCode.
-        // If the server expects a token, we might need to adjust, but for now let's assume we re-send the pairing code if we have it,
-        // or wait for the user to enter it.
-        // Actually, looking at the types, PairResponse returns a token.
-        // If the protocol requires sending the token on connect, it might be in the query params or a specific message.
-        // Assuming for now we just need to re-pair with the code if we have it.
+        // We connected with a token and the server accepted us (didn't close),
+        // so we're already paired. Request sessions immediately.
+        setIsPaired(true);
+        const sessionsMsg = createMessage('request_sessions_list', {});
+        ws.send(JSON.stringify(sessionsMsg));
+      } else {
+        // No token – try to re-pair with stored pairing code
+        const storedCode = sessionStorage.getItem('pairing_code');
         if (storedCode) {
-          send('pair_request', { pairingCode: storedCode });
+          const pairMsg = createMessage('pair_request', { pairingCode: storedCode });
+          ws.send(JSON.stringify(pairMsg));
         }
-      } else if (storedCode) {
-        send('pair_request', { pairingCode: storedCode });
       }
     };
 
@@ -122,11 +130,16 @@ export function useWebSocket() {
       }
     };
 
-    ws.onclose = () => {
-      console.log('WebSocket closed');
+    ws.onclose = (event) => {
+      console.log('WebSocket closed', event);
       setIsConnected(false);
       setIsPaired(false);
       socketRef.current = null;
+
+      // If the server rejected our token (1008), clear it
+      if (event.code === 1008 && storedToken) {
+        sessionStorage.removeItem('auth_token');
+      }
 
       // Schedule reconnect
       const delay = reconnectDelayRef.current;
@@ -141,7 +154,7 @@ export function useWebSocket() {
       console.error('WebSocket error:', err);
       ws.close();
     };
-  }, [handleMessage, send]);
+  }, [handleMessage]);
 
   useEffect(() => {
     connect();
@@ -161,7 +174,7 @@ export function useWebSocket() {
     lastMessage,
     extensionStatus,
     sessionsList,
-    activeSession,
+    sessionDataMap,
     editingState,
     send,
   };

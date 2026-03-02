@@ -277,57 +277,143 @@ export class ChatWatcher {
 
   /**
    * Read a session file which may be either plain JSON or newline-delimited (jsonl).
-   * For jsonl the last non-empty line represents the current session state.
+   *
+   * VS Code's JSONL format:
+   *  - kind=0: full snapshot of the session object
+   *  - kind=1: set value at key path (scalar replace)
+   *  - kind=2: set value at key path (array replace / append)
+   *
+   * Both kind=1 and kind=2 use `k` (key path) and `v` (new value).
+   * We parse the snapshot and apply all subsequent patches to get the latest state.
    */
   private async parseSessionFile(filePath: string): Promise<VscodeChatSessionFile | null> {
     try {
       const raw = await fs.promises.readFile(filePath, 'utf-8');
-      // split into lines and drop empties
       const lines = raw.split(/\r?\n/).filter((l) => l.trim().length > 0);
       if (lines.length === 0) {
         return null;
       }
-      // iterate backwards to find the last line that parses as JSON
-      for (let i = lines.length - 1; i >= 0; --i) {
-        const line = lines[i];
+
+      let session: VscodeChatSessionFile | null = null;
+
+      for (const line of lines) {
+        let parsed: Record<string, unknown>;
         try {
-          const parsed = JSON.parse(line) as any;
-          // some .jsonl files wrap the session in a `{ kind:0, v: {...} }` envelope
-          if (parsed && typeof parsed === 'object' && parsed.v && parsed.v.sessionId) {
-            return parsed.v as VscodeChatSessionFile;
-          }
-          if (parsed && parsed.sessionId) {
-            return parsed as VscodeChatSessionFile;
-          }
-          // otherwise continue looking backwards
+          parsed = JSON.parse(line) as Record<string, unknown>;
         } catch {
-          // try the previous one
+          continue;
+        }
+
+        if (!parsed || typeof parsed !== 'object') {
+          continue;
+        }
+
+        // kind=0: full snapshot
+        if (parsed.kind === 0 && parsed.v) {
+          const v = parsed.v as Record<string, unknown>;
+          if (v.sessionId) {
+            session = v as unknown as VscodeChatSessionFile;
+          }
+          continue;
+        }
+
+        // kind=1 or kind=2: incremental patch – apply to the current snapshot
+        if ((parsed.kind === 1 || parsed.kind === 2) && session && Array.isArray(parsed.k)) {
+          this.applyPatch(session as unknown as Record<string, unknown>, parsed.k as (string | number)[], parsed.v);
+          continue;
+        }
+
+        // Plain JSON (no kind envelope)
+        if (parsed.sessionId) {
+          session = parsed as unknown as VscodeChatSessionFile;
+          continue;
         }
       }
-      return null;
+
+      return session;
     } catch {
       return null;
     }
+  }
+
+  /**
+   * Apply a JSONL incremental patch: walk the key path and set the value.
+   */
+  private applyPatch(target: Record<string, unknown>, keyPath: (string | number)[], value: unknown): void {
+    if (keyPath.length === 0) {
+      return;
+    }
+    let obj: Record<string, unknown> = target;
+    for (let i = 0; i < keyPath.length - 1; i++) {
+      const key = keyPath[i];
+      if (obj == null || typeof obj !== 'object') {
+        return;
+      }
+      obj = (obj as Record<string | number, unknown>)[key] as Record<string, unknown>;
+    }
+    if (obj != null && typeof obj === 'object') {
+      (obj as Record<string | number, unknown>)[keyPath[keyPath.length - 1]] = value;
+    }
+  }
+
+  /**
+   * Extract a plain string from a field that may be a string, an object
+   * with a `.value` property (VS Code MarkdownString shape), or undefined.
+   */
+  private extractString(val: unknown): string {
+    if (typeof val === 'string') {
+      return val;
+    }
+    if (val && typeof val === 'object' && 'value' in (val as Record<string, unknown>)) {
+      return String((val as Record<string, unknown>).value ?? '');
+    }
+    return '';
   }
 
   private toChatSessionUpdate(session: VscodeChatSessionFile): ChatSessionUpdate {
     const requests = session.requests.map((request) => {
       const message = typeof request.message === 'string' ? request.message : request.message.text;
       const responseParts = request.response.map((item) => {
-        if (item.kind === 'markdownContent' || item.value) {
-          return { kind: 'markdown' as const, content: item.value || '' };
-        }
-        if (item.toolId || item.toolCallId) {
+        const kind = item.kind ?? '';
+
+        // Tool invocations – identified by explicit kind or presence of toolId/toolCallId
+        if (kind === 'toolInvocationSerialized' || item.toolId || item.toolCallId) {
           const toolStatus: 'completed' | 'running' = item.isComplete ? 'completed' : 'running';
+          // Prefer pastTenseMessage when complete, otherwise invocationMessage
+          const displayMessage =
+            (item.isComplete ? this.extractString(item.pastTenseMessage) : '') ||
+            this.extractString(item.invocationMessage) ||
+            this.extractString(item.pastTenseMessage) ||
+            '';
           return {
             kind: 'tool_invocation' as const,
-            content: item.invocationMessage || item.pastTenseMessage || '',
+            content: displayMessage,
             toolName: item.toolId || item.toolCallId || '',
             toolStatus,
           };
         }
+
+        // Thinking blocks
+        if (kind === 'thinking') {
+          return { kind: 'markdown' as const, content: this.extractString(item.value) };
+        }
+
+        // Markdown content – items without a kind, or with kind=markdownContent
+        if (!kind || kind === 'markdownContent') {
+          const text = this.extractString(item.value);
+          if (text) {
+            return { kind: 'markdown' as const, content: text };
+          }
+        }
+
+        // Skip UI-only items like inlineReference, textEditGroup, undoStop, codeblockUri, etc.
+        if (['inlineReference', 'textEditGroup', 'undoStop', 'codeblockUri', 'confirmation', 'progressTaskSerialized'].includes(kind)) {
+          return null;
+        }
+
         return { kind: 'unknown' as const, content: JSON.stringify(item) };
-      });
+      }).filter((part): part is NonNullable<typeof part> => part != null);
+
       const lastResponse = request.response[request.response.length - 1];
       const isStreaming = lastResponse ? lastResponse.isComplete === false : false;
       return {
@@ -406,17 +492,32 @@ export class ChatWatcher {
               continue;
             }
             seen.add(parsed.sessionId);
-            const firstRequest = parsed.requests[0];
-            const title = firstRequest
-              ? typeof firstRequest.message === 'string'
-                ? firstRequest.message
-                : firstRequest.message.text
-              : '';
+            // Skip empty sessions (no requests ever sent)
+            if (parsed.requests.length === 0) {
+              continue;
+            }
+            // Prefer customTitle (set via kind=1 patches) over first request message
+            let title = parsed.customTitle || '';
+            if (!title) {
+              const firstRequest = parsed.requests[0];
+              title = firstRequest
+                ? typeof firstRequest.message === 'string'
+                  ? firstRequest.message
+                  : firstRequest.message.text
+                : '';
+            }
             const createdAt = parsed.creationDate
               ? new Date(parsed.creationDate).toISOString()
               : new Date().toISOString();
-            const lastMessageAt = parsed.lastMessageDate
-              ? new Date(parsed.lastMessageDate).toISOString()
+            // Compute lastMessageAt from the latest request timestamp or lastMessageDate
+            let lastMessageTs = parsed.lastMessageDate || parsed.creationDate || 0;
+            for (const req of parsed.requests) {
+              if (req.timestamp && req.timestamp > lastMessageTs) {
+                lastMessageTs = req.timestamp;
+              }
+            }
+            const lastMessageAt = lastMessageTs
+              ? new Date(lastMessageTs).toISOString()
               : createdAt;
             sessions.push({
               sessionId: parsed.sessionId,
@@ -431,6 +532,9 @@ export class ChatWatcher {
           // ignore this dir
         }
       }
+
+      // Sort sessions by lastMessageAt descending (newest first) to match VS Code ordering
+      sessions.sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
 
       const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri;
       if (!workspaceRoot) {

@@ -216,6 +216,7 @@ export interface VscodeChatSessionFile {
   lastMessageDate?: number;
   isImported?: boolean;
   hasPendingEdits?: boolean;
+  customTitle?: string;
   requests: VscodeChatRequestData[];
   inputState?: {
     mode?: { id: string; kind: string };
@@ -244,18 +245,37 @@ export interface VscodeChatRequestData {
 
 export interface VscodeChatResponseItem {
   kind?: string;
-  value?: string;
+  /** Markdown content (plain items without kind) or thinking text */
+  value?: string | { value: string; [key: string]: unknown };
   supportThemeIcons?: boolean;
   supportHtml?: boolean;
+  supportAlertSyntax?: boolean;
   baseUri?: unknown;
+  uris?: unknown;
   // Tool invocation fields
-  invocationMessage?: string;
-  pastTenseMessage?: string;
+  invocationMessage?: string | { value: string; [key: string]: unknown };
+  pastTenseMessage?: string | { value: string; [key: string]: unknown };
   isConfirmed?: boolean;
   isComplete?: boolean;
   toolCallId?: string;
   toolId?: string;
   resultDetails?: unknown;
+  source?: unknown;
+  generatedTitle?: unknown;
+  // Inline reference fields
+  inlineReference?: unknown;
+  resolveId?: string;
+  // Text edit group fields
+  uri?: string;
+  edits?: unknown;
+  done?: boolean;
+  // Thinking fields
+  id?: string;
+  // Code block URI fields
+  isEdit?: boolean;
+  // Progress task fields
+  content?: string | { value: string; [key: string]: unknown };
+  progress?: unknown;
 }
 
 /** Shape of chatEditingSessions/{sessionId}/state.json */
