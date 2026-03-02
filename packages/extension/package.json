@@ -54,8 +54,8 @@
     }
   },
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
+    "build": "tsdown --config tsup.config.ts",
+    "dev": "tsdown --config tsup.config.ts --watch",
     "prepackage": "mkdir -p dist/server && cp ../server/dist/index.js dist/server/index.js",
     "package": "pnpm build && pnpm prepackage && vsce package --no-dependencies",
     "clean": "rm -rf dist"
@@ -67,7 +67,7 @@
   "devDependencies": {
     "@types/vscode": "^1.96.0",
     "@types/ws": "^8.18.0",
-    "tsup": "^8.4.0",
+    "tsdown": "^0.10.0",
     "typescript": "^5.8.0",
     "@vscode/vsce": "^3.7.1"
   }
