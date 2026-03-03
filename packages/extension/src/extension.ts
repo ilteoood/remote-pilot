@@ -130,14 +130,10 @@ function spawnServer(): Promise<ServerInfo> {
       }
     };
 
-    if (child.stdout) {
-      child.stdout.on('data', handleStdout);
-    }
-    if (child.stderr) {
-      child.stderr.on('data', (data: Buffer) => {
-        channel.appendLine(`[stderr] ${data.toString().trim()}`);
-      });
-    }
+    child.stdout?.on('data', handleStdout);
+    child.stderr?.on('data', (data: Buffer) => {
+      channel.appendLine(`[stderr] ${data.toString().trim()}`);
+    });
 
     child.on('error', (err) => {
       channel.appendLine(`Server process error: ${err.message}`);
