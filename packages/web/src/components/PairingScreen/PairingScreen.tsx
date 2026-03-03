@@ -8,13 +8,15 @@ interface PairingScreenProps {
   error?: string;
 }
 
+const CODE_LENGTH = 6;
+
 export const PairingScreen: React.FC<PairingScreenProps> = ({ onPair, isConnecting, error }) => {
   const { t } = useTranslation();
   const [code, setCode] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (code.length === 6) {
+    if (code.length === CODE_LENGTH) {
       onPair(code);
     }
   };
@@ -30,10 +32,10 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({ onPair, isConnecti
           <input
             type="text"
             value={code}
-            onChange={(e) => setCode(e.target.value.slice(0, 6).toUpperCase())}
+            onChange={(e) => setCode(e.target.value.slice(0, CODE_LENGTH).toUpperCase())}
             placeholder={t('pairing.placeholder')}
             className={styles.codeInput}
-            maxLength={6}
+            maxLength={CODE_LENGTH}
             disabled={isConnecting}
           />
 
@@ -41,7 +43,7 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({ onPair, isConnecti
 
           <button
             type="submit"
-            disabled={code.length !== 6 || isConnecting}
+            disabled={code.length !== CODE_LENGTH || isConnecting}
             className={styles.submitButton}
           >
             {isConnecting ? t('pairing.connecting') : t('pairing.connect')}
