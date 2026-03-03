@@ -285,15 +285,16 @@ export class ChatWatcher {
     keyPath: (string | number)[],
     value: unknown,
   ): void {
-    if (keyPath.length === 0) {
+    const keyPathLength = keyPath.length;
+    if (!keyPathLength) {
       return;
     }
     let obj: Record<string, unknown> = target;
-    for (let i = 0; i < keyPath.length - 1; i++) {
-      const key = keyPath[i];
+    for (let i = 0; i < keyPathLength - 1; i++) {
       if (obj == null || typeof obj !== 'object') {
         return;
       }
+      const key = keyPath[i];
       obj = (obj as Record<string | number, unknown>)[key] as Record<string, unknown>;
     }
     if (obj != null && typeof obj === 'object') {
