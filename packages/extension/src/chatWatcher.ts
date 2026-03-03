@@ -20,6 +20,15 @@ interface DebounceHandle {
   timer: NodeJS.Timeout;
 }
 
+const UI_ONLY_KINDS = new Set([
+  'inlineReference',
+  'textEditGroup',
+  'undoStop',
+  'codeblockUri',
+  'confirmation',
+  'progressTaskSerialized',
+]);
+
 export class ChatWatcher {
   private readonly callbacks: ChatWatcherCallbacks;
   private readonly debounceMs: number;
@@ -447,16 +456,7 @@ export class ChatWatcher {
           }
 
           // Skip UI-only items like inlineReference, textEditGroup, undoStop, codeblockUri, etc.
-          if (
-            [
-              'inlineReference',
-              'textEditGroup',
-              'undoStop',
-              'codeblockUri',
-              'confirmation',
-              'progressTaskSerialized',
-            ].includes(kind)
-          ) {
+          if (UI_ONLY_KINDS.has(kind)) {
             return null;
           }
 
@@ -552,9 +552,7 @@ export class ChatWatcher {
                   : firstRequest.message.text
                 : '';
             }
-            const createdAt = parsed.creationDate
-              ? new Date(parsed.creationDate).toISOString()
-              : new Date().toISOString();
+            const createdAt = new Date(parsed.creationDate ?? Date.now()).toISOString()
             // Compute lastMessageAt from the latest request timestamp or lastMessageDate
             let lastMessageTs = parsed.lastMessageDate || parsed.creationDate || 0;
             for (const req of parsed.requests) {
