@@ -27,9 +27,7 @@ function getConfig() {
 }
 
 function getOutputChannel(): vscode.OutputChannel {
-  if (!outputChannel) {
-    outputChannel = vscode.window.createOutputChannel('Remote Pilot');
-  }
+  outputChannel ??= vscode.window.createOutputChannel('Remote Pilot');
   return outputChannel;
 }
 
