@@ -158,10 +158,8 @@ function spawnServer(): Promise<ServerInfo> {
 }
 
 function killServer(): void {
-  if (serverProcess) {
-    serverProcess.kill('SIGTERM');
-    serverProcess = null;
-  }
+  serverProcess?.kill('SIGTERM');
+  serverProcess = null;
   serverInfo = null;
 }
 
