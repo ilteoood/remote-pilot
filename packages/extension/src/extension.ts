@@ -229,14 +229,10 @@ async function startRemotePilot(): Promise<void> {
 }
 
 function stopRemotePilot(): void {
-  if (chatWatcher) {
-    chatWatcher.stop();
-    chatWatcher = null;
-  }
-  if (wsClient) {
-    wsClient.disconnect();
-    wsClient = null;
-  }
+  chatWatcher?.stop();
+  chatWatcher = null;
+  wsClient?.disconnect();
+  wsClient = null;
   killServer();
   updateStatus(false);
   vscode.window.showInformationMessage('Remote Pilot stopped.');
@@ -246,13 +242,9 @@ export function activate(context: vscode.ExtensionContext): void {
   ensureStatusBar();
   updateStatus(false);
 
-  const startCommand = vscode.commands.registerCommand('remote-pilot.start', async () => {
-    await startRemotePilot();
-  });
+  const startCommand = vscode.commands.registerCommand('remote-pilot.start', startRemotePilot);
 
-  const stopCommand = vscode.commands.registerCommand('remote-pilot.stop', () => {
-    stopRemotePilot();
-  });
+  const stopCommand = vscode.commands.registerCommand('remote-pilot.stop', stopRemotePilot);
 
   const showPairingCodeCommand = vscode.commands.registerCommand(
     'remote-pilot.showPairingCode',
@@ -275,20 +267,14 @@ export function activate(context: vscode.ExtensionContext): void {
 
   const { autoStart } = getConfig();
   if (autoStart) {
-    startRemotePilot().catch(() => {
-      return;
-    });
+    startRemotePilot().catch(() => {});
   }
 }
 
 export function deactivate(): void {
   stopRemotePilot();
-  if (outputChannel) {
-    outputChannel.dispose();
-    outputChannel = null;
-  }
-  if (statusBar) {
-    statusBar.dispose();
-    statusBar = null;
-  }
+  outputChannel?.dispose();
+  outputChannel = null;
+  statusBar?.dispose();
+  statusBar = null;
 }
