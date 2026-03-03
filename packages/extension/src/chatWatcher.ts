@@ -30,8 +30,6 @@ const UI_ONLY_KINDS = new Set([
 ]);
 
 export class ChatWatcher {
-  private readonly callbacks: ChatWatcherCallbacks;
-  private readonly debounceMs: number;
   private readonly disposables: vscode.Disposable[] = [];
   // we may have more than one storage hash for the same workspace (e.g. normal vs dev-host)
   private sessionWatchers: fs.FSWatcher[] = [];
@@ -41,10 +39,7 @@ export class ChatWatcher {
   private editingDirs: string[] = [];
   private debouncedReads = new Map<string, DebounceHandle>();
 
-  constructor(callbacks: ChatWatcherCallbacks, debounceMs = 500) {
-    this.callbacks = callbacks;
-    this.debounceMs = debounceMs;
-  }
+  constructor(private readonly callbacks: ChatWatcherCallbacks, private readonly debounceMs = 500) {}
 
   async start(): Promise<void> {
     const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri;
