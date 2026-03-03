@@ -97,16 +97,11 @@ input:focus, textarea:focus {
 /* Utilities */
 .flex { display: flex; }
 .flex-col { flex-direction: column; }
-.items-center { align-items: center; }
 .justify-start { justify-content: flex-start; }
 .justify-end { justify-content: flex-end; }
-.justify-center { justify-content: center; }
 .justify-between { justify-content: space-between; }
 .grow { flex-grow: 1; }
-.h-full { height: 100%; }
-.w-full { width: 100%; }
 .gap-sm { gap: var(--space-sm); }
-.gap-md { gap: var(--space-md); }
 
 /* Markdown Styles */
 .markdown-body {
