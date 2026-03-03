@@ -151,12 +151,8 @@ export function useWebSocket() {
   useEffect(() => {
     connect();
     return () => {
-      if (socketRef.current) {
-        socketRef.current.close();
-      }
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
+      socketRef.current?.close();
+      clearTimeout(reconnectTimeoutRef.current);
     };
   }, [connect]);
 
