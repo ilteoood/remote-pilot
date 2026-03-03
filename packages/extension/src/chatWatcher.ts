@@ -385,7 +385,11 @@ export class ChatWatcher {
 
           return { kind: 'unknown' as const, content: JSON.stringify(item) };
         })
-        .filter((part): part is NonNullable<typeof part> => part != null);
+        // final filter: drop parts whose content is empty or just a code fence
+        .filter((part): part is NonNullable<typeof part> => {
+          const t = part?.content.trim();
+          return Boolean(t) && t !== '```';
+        });
 
       const lastResponse = request.response[request.response.length - 1];
       const isStreaming = lastResponse ? lastResponse.isComplete === false : false;
