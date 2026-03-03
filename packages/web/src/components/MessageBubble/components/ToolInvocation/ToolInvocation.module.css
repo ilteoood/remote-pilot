@@ -1,0 +1,64 @@
+.toolContainer {
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  background: var(--bg-panel);
+  overflow: hidden;
+  margin: 4px 0;
+}
+
+.toolHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.toolHeader:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.toolInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.statusIcon {
+  font-weight: bold;
+}
+
+.toolName {
+  font-weight: 600;
+  font-size: 0.9em;
+}
+
+.toggleText {
+  font-size: 0.8em;
+  color: var(--text-secondary);
+}
+
+.toolContent {
+  padding: 8px 12px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 0.9em;
+  background: rgba(0, 0, 0, 0.2);
+  white-space: pre-wrap;
+  font-family: var(--font-mono);
+}
+
+.statusRunning {
+  color: var(--accent-warning);
+}
+
+.statusCompleted {
+  color: var(--accent-success);
+}
+
+.statusFailed {
+  color: var(--accent-error);
+}
+
+.statusDefault {
+  color: var(--text-secondary);
+}

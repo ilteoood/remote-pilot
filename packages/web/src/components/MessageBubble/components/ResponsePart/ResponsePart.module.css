@@ -1,0 +1,6 @@
+.citation {
+  font-size: 0.8em;
+  color: var(--text-secondary);
+  border-left: 2px solid var(--border-subtle);
+  padding-left: 8px;
+}
