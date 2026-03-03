@@ -9,6 +9,11 @@ import {
   VscodeChatSessionFile,
 } from '@remote-pilot/shared';
 import * as vscode from 'vscode';
+import {
+  findWorkspaceHashes,
+  getWorkspaceStorageRoot,
+  toWorkspaceRelativePath,
+} from './workspaceUtils';
 
 export interface ChatWatcherCallbacks {
   onSessionsList?: (list: ChatSessionsList) => void;
@@ -39,7 +44,10 @@ export class ChatWatcher {
   private editingDirs: string[] = [];
   private debouncedReads = new Map<string, DebounceHandle>();
 
-  constructor(private readonly callbacks: ChatWatcherCallbacks, private readonly debounceMs = 500) {}
+  constructor(
+    private readonly callbacks: ChatWatcherCallbacks,
+    private readonly debounceMs = 500,
+  ) {}
 
   async start(): Promise<void> {
     const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri;
@@ -47,8 +55,8 @@ export class ChatWatcher {
       return;
     }
 
-    const storageRoot = this.getWorkspaceStorageRoot();
-    const workspaceHashes = await this.findWorkspaceHashes(storageRoot, workspaceRoot.toString());
+    const storageRoot = getWorkspaceStorageRoot();
+    const workspaceHashes = await findWorkspaceHashes(storageRoot, workspaceRoot.toString());
     if (workspaceHashes.length === 0) {
       return;
     }
@@ -121,86 +129,6 @@ export class ChatWatcher {
     this.disposables.splice(0).forEach((disposable) => {
       disposable.dispose();
     });
-  }
-
-  private getWorkspaceStorageRoot(): string {
-    const home = process.env.HOME || process.env.USERPROFILE || '';
-    switch (process.platform) {
-      case 'win32':
-        return path.join(
-          process.env.APPDATA || path.join(home, 'AppData', 'Roaming'),
-          'Code',
-          'User',
-          'workspaceStorage',
-        );
-      case 'linux':
-        return path.join(
-          process.env.XDG_CONFIG_HOME || path.join(home, '.config'),
-          'Code',
-          'User',
-          'workspaceStorage',
-        );
-      default:
-        return path.join(
-          home,
-          'Library',
-          'Application Support',
-          'Code',
-          'User',
-          'workspaceStorage',
-        );
-    }
-  }
-
-  /**
-   * Returns all storage hash directories whose workspace.json matches the
-   * provided URI.  When multiple hashes exist we prefer the one(s) that
-   * already contain chat sessions so that diagnostics are correct during dev
-   * scenarios (extension-host vs normal window).
-   */
-  private async findWorkspaceHashes(storageRoot: string, workspaceUri: string): Promise<string[]> {
-    const hashes: string[] = [];
-    try {
-      const entries = await fs.promises.readdir(storageRoot, { withFileTypes: true });
-      for (const entry of entries) {
-        if (!entry.isDirectory()) {
-          continue;
-        }
-        const workspaceJson = path.join(storageRoot, entry.name, 'workspace.json');
-        try {
-          const raw = await fs.promises.readFile(workspaceJson, 'utf-8');
-          const parsed = JSON.parse(raw) as { folder?: string };
-          if (parsed.folder === workspaceUri) {
-            hashes.push(entry.name);
-          }
-        } catch {}
-      }
-    } catch {
-      // ignore
-    }
-
-    if (hashes.length <= 1) {
-      return hashes;
-    }
-
-    // if multiple hashes match, choose the one containing the largest number
-    // of session files. this ensures the dev-host storage (often empty) is
-    // ignored when the real workspace already has sessions.
-    const counts: Record<string, number> = {};
-    for (const h of hashes) {
-      const chatDir = path.join(storageRoot, h, 'chatSessions');
-      try {
-        const files = await fs.promises.readdir(chatDir);
-        counts[h] = files.filter((f) => f.match(/\.jsonl?$/)).length;
-      } catch {
-        counts[h] = 0;
-      }
-    }
-    hashes.sort((a, b) => (counts[b] || 0) - (counts[a] || 0));
-    // return all matches, sorted highest‑count first so that the one with
-    // the most sessions is used when choosing a single path elsewhere if
-    // needed.  emitSessionsList will iterate across all and dedupe.
-    return hashes;
   }
 
   private watchSessions(): void {
@@ -485,7 +413,7 @@ export class ChatWatcher {
       [];
     const mappedEntries = entries.map((entry) => {
       return {
-        filePath: this.toWorkspaceRelativePath(entry.resource),
+        filePath: toWorkspaceRelativePath(entry.resource),
         state: (entry.state ?? 0) as 0 | 1 | 2,
         originalHash: entry.originalHash,
         currentHash: entry.currentHash,
@@ -493,20 +421,6 @@ export class ChatWatcher {
     });
 
     return { sessionId, entries: mappedEntries };
-  }
-
-  private toWorkspaceRelativePath(resource: string): string {
-    try {
-      const uri = vscode.Uri.parse(resource);
-      const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri;
-      if (!workspaceRoot) {
-        return uri.fsPath;
-      }
-      const relative = path.relative(workspaceRoot.fsPath, uri.fsPath);
-      return relative || uri.fsPath;
-    } catch {
-      return resource;
-    }
   }
 
   public async emitSessionsList(): Promise<void> {
@@ -547,7 +461,7 @@ export class ChatWatcher {
                   : firstRequest.message.text
                 : '';
             }
-            const createdAt = new Date(parsed.creationDate ?? Date.now()).toISOString()
+            const createdAt = new Date(parsed.creationDate ?? Date.now()).toISOString();
             // Compute lastMessageAt from the latest request timestamp or lastMessageDate
             let lastMessageTs = parsed.lastMessageDate || parsed.creationDate || 0;
             for (const req of parsed.requests) {
