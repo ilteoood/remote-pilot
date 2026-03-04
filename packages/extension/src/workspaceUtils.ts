@@ -42,24 +42,21 @@ export async function findWorkspaceHashes(
   workspaceUri: string,
 ): Promise<string[]> {
   const hashes: string[] = [];
-  try {
-    const entries = await fs.promises.readdir(storageRoot, { withFileTypes: true });
-    for (const entry of entries) {
+  const entries = await fs.promises.readdir(storageRoot, { withFileTypes: true }).catch(() => []);
+
+  await Promise.allSettled(
+    entries.map(async (entry) => {
       if (!entry.isDirectory()) {
-        continue;
+        return;
       }
       const workspaceJson = path.join(storageRoot, entry.name, 'workspace.json');
-      try {
-        const raw = await fs.promises.readFile(workspaceJson, 'utf-8');
-        const parsed = JSON.parse(raw) as { folder?: string };
-        if (parsed.folder === workspaceUri) {
-          hashes.push(entry.name);
-        }
-      } catch {}
-    }
-  } catch {
-    // ignore
-  }
+      const raw = await fs.promises.readFile(workspaceJson, 'utf-8');
+      const parsed = JSON.parse(raw) as { folder?: string };
+      if (parsed.folder === workspaceUri) {
+        hashes.push(entry.name);
+      }
+    })
+  )
 
   return hashes;
 }
