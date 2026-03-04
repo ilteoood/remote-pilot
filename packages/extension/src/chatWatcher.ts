@@ -8,7 +8,7 @@ import {
   VscodeChatRequestData,
   VscodeChatSessionFile,
 } from '@remote-pilot/shared';
-import { Database } from 'node-sqlite3-wasm';
+import initSqlJs from 'sql.js';
 import * as vscode from 'vscode';
 import {
   findWorkspaceHashes,
@@ -56,6 +56,7 @@ export class ChatWatcher {
   private sessionsDirs: string[] = [];
   private editingDirs: string[] = [];
   private debouncedReads = new Map<string, DebounceHandle>();
+  private sqlJsPromise: ReturnType<typeof initSqlJs> | null = null;
   private readonly debounceMs = 500;
 
   constructor(
@@ -476,7 +477,7 @@ export class ChatWatcher {
           continue;
         }
         try {
-          const items = this.readAgentSessionsFromDb(dbPath);
+          const items = await this.readAgentSessionsFromDb(dbPath);
           for (const item of items) {
             if (!item.resource) {
               continue;
@@ -527,16 +528,29 @@ export class ChatWatcher {
     }
   }
 
-  private readAgentSessionsFromDb(dbPath: string): AgentSessionItem[] {
-    const db = new Database(dbPath, { readOnly: true, fileMustExist: true });
+  private getSqlJs(): ReturnType<typeof initSqlJs> {
+    if (!this.sqlJsPromise) {
+      this.sqlJsPromise = initSqlJs({ locateFile: (file) => path.join(__dirname, file) });
+    }
+    return this.sqlJsPromise;
+  }
+
+  private async readAgentSessionsFromDb(dbPath: string): Promise<AgentSessionItem[]> {
+    const SQL = await this.getSqlJs();
+    const fileBuffer = fs.readFileSync(dbPath);
+    const db = new SQL.Database(fileBuffer);
     try {
-      const row = db.get("SELECT value FROM ItemTable WHERE key = 'agentSessions.model.cache'") as {
-        value: string;
-      } | null;
-      if (!row?.value) {
+      const results = db.exec(
+        "SELECT value FROM ItemTable WHERE key = 'agentSessions.model.cache'",
+      );
+      if (!results.length || !results[0].values.length) {
         return [];
       }
-      const parsed = JSON.parse(row.value) as AgentSessionItem[];
+      const value = results[0].values[0][0];
+      if (typeof value !== 'string') {
+        return [];
+      }
+      const parsed = JSON.parse(value) as AgentSessionItem[];
       return Array.isArray(parsed) ? [...parsed].reverse() : [];
     } catch {
       return [];
