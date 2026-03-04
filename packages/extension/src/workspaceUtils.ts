@@ -61,22 +61,6 @@ export async function findWorkspaceHashes(
     // ignore
   }
 
-  if (hashes.length <= 1) {
-    return hashes;
-  }
-
-  // sort by number of session files (descending)
-  const counts: Record<string, number> = {};
-  for (const h of hashes) {
-    const chatDir = path.join(storageRoot, h, 'chatSessions');
-    try {
-      const files = await fs.promises.readdir(chatDir);
-      counts[h] = files.filter((f) => f.match(/\.jsonl?$/)).length;
-    } catch {
-      counts[h] = 0;
-    }
-  }
-  hashes.sort((a, b) => (counts[b] || 0) - (counts[a] || 0));
   return hashes;
 }
 
