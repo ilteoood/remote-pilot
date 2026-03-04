@@ -70,7 +70,6 @@ export class ChatWatcher {
 
     this.watchSessions();
     this.watchEditingSessions();
-    await this.emitSessionsList();
   }
 
   /**
@@ -78,26 +77,15 @@ export class ChatWatcher {
    * Used when the web client requests a particular session.
    */
   async emitSessionById(sessionId: string): Promise<boolean> {
-    if (this.sessionsDirs.length === 0) {
-      return false;
-    }
     try {
       for (const dir of this.sessionsDirs) {
         try {
-          const files = await fs.promises.readdir(dir);
-          for (const file of files) {
-            if (!file.match(/\.jsonl?$/)) {
-              continue;
-            }
-            const fullPath = path.join(dir, file);
-            const parsed = await this.parseSessionFile(fullPath);
-            if (parsed && parsed.sessionId === sessionId) {
-              const update = this.toChatSessionUpdate(parsed);
-              if (this.callbacks.onSessionUpdate) {
-                this.callbacks.onSessionUpdate(update);
-              }
-              return true;
-            }
+          const fullPath = path.join(dir, `${sessionId}.jsonl`);
+          const parsed = await this.parseSessionFile(fullPath);
+          if (parsed?.sessionId === sessionId) {
+            const update = this.toChatSessionUpdate(parsed);
+            this.callbacks.onSessionUpdate?.(update);
+            return true;
           }
         } catch {
           // ignore this directory
@@ -131,17 +119,51 @@ export class ChatWatcher {
     });
   }
 
-  private watchSessions(): void {
+  /**
+   * Returns the paths of the `limit` most recently modified session files in
+   * the given directory, sorted by mtime descending.
+   */
+  private async getRecentSessionFiles(dir: string, limit = 10): Promise<Set<string>> {
+    const files = await fs.promises.readdir(dir);
+    const sessionFiles = files.filter((f) => f.match(/\.jsonl?$/));
+    const fileStats = await Promise.all(
+      sessionFiles.map(async (file) => {
+        const fullPath = path.join(dir, file);
+        try {
+          const stat = await fs.promises.stat(fullPath);
+          return { fullPath, mtime: stat.mtimeMs };
+        } catch {
+          return null;
+        }
+      }),
+    );
+    return new Set(
+      fileStats
+        .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+        .sort((a, b) => b.mtime - a.mtime)
+        .slice(0, limit)
+        .map((entry) => entry.fullPath),
+    );
+  }
+
+  private async watchSessions(): Promise<void> {
     for (const dir of this.sessionsDirs) {
       if (!dir || !fs.existsSync(dir)) {
         continue;
       }
       try {
-        const watcher = fs.watch(dir, (_event, filename) => {
+        let recentFiles = await this.getRecentSessionFiles(dir);
+        const watcher = fs.watch(dir, async (event, filename) => {
           if (!filename?.match(/\.jsonl?$/)) {
             return;
           }
+          if (event === 'rename') {
+            recentFiles = await this.getRecentSessionFiles(dir);
+          }
           const fullPath = path.join(dir, filename);
+          if (!recentFiles.has(fullPath)) {
+            return;
+          }
           this.debounceRead(fullPath, async () => {
             await this.handleSessionFile(fullPath);
             await this.emitSessionsList();
@@ -437,53 +459,54 @@ export class ChatWatcher {
       const seen = new Set<string>();
       for (const dir of this.sessionsDirs) {
         try {
-          const files = await fs.promises.readdir(dir);
-          for (const file of files) {
-            if (!file.match(/\.jsonl?$/)) {
-              continue;
-            }
-            const fullPath = path.join(dir, file);
-            const parsed = await this.parseSessionFile(fullPath);
-            if (!parsed) {
-              console.log('[ChatWatcher] failed to parse', fullPath);
-              continue;
-            }
-            if (seen.has(parsed.sessionId)) {
-              continue;
-            }
-            seen.add(parsed.sessionId);
-            // Skip empty sessions (no requests ever sent)
-            if (parsed.requests.length === 0) {
-              continue;
-            }
-            // Prefer customTitle (set via kind=1 patches) over first request message
-            let title = parsed.customTitle || '';
-            if (!title) {
-              const firstRequest = parsed.requests[0];
-              title = firstRequest
-                ? typeof firstRequest.message === 'string'
-                  ? firstRequest.message
-                  : firstRequest.message.text
-                : '';
-            }
-            const createdAt = new Date(parsed.creationDate ?? Date.now()).toISOString();
-            // Compute lastMessageAt from the latest request timestamp or lastMessageDate
-            let lastMessageTs = parsed.lastMessageDate || parsed.creationDate || 0;
-            for (const req of parsed.requests) {
-              if (req.timestamp && req.timestamp > lastMessageTs) {
-                lastMessageTs = req.timestamp;
+          const recentFiles = await this.getRecentSessionFiles(dir);
+
+          await Promise.allSettled(
+            [...recentFiles].map(async (fullPath) => {
+              const parsed = await this.parseSessionFile(fullPath);
+              if (!parsed) {
+                console.log('[ChatWatcher] failed to parse', fullPath);
+                return;
               }
-            }
-            const lastMessageAt = lastMessageTs ? new Date(lastMessageTs).toISOString() : createdAt;
-            sessions.push({
-              sessionId: parsed.sessionId,
-              title,
-              createdAt,
-              lastMessageAt,
-              requestCount: parsed.requests.length,
-              hasPendingEdits: parsed.hasPendingEdits ?? false,
-            });
-          }
+              if (seen.has(parsed.sessionId)) {
+                return;
+              }
+              seen.add(parsed.sessionId);
+              // Skip empty sessions (no requests ever sent)
+              if (parsed.requests.length === 0) {
+                return;
+              }
+              // Prefer customTitle (set via kind=1 patches) over first request message
+              let title = parsed.customTitle || '';
+              if (!title) {
+                const firstRequest = parsed.requests[0];
+                title = firstRequest
+                  ? typeof firstRequest.message === 'string'
+                    ? firstRequest.message
+                    : firstRequest.message.text
+                  : '';
+              }
+              const createdAt = new Date(parsed.creationDate ?? Date.now()).toISOString();
+              // Compute lastMessageAt from the latest request timestamp or lastMessageDate
+              let lastMessageTs = parsed.lastMessageDate || parsed.creationDate || 0;
+              for (const req of parsed.requests) {
+                if (req.timestamp && req.timestamp > lastMessageTs) {
+                  lastMessageTs = req.timestamp;
+                }
+              }
+              const lastMessageAt = lastMessageTs
+                ? new Date(lastMessageTs).toISOString()
+                : createdAt;
+              sessions.push({
+                sessionId: parsed.sessionId,
+                title,
+                createdAt,
+                lastMessageAt,
+                requestCount: parsed.requests.length,
+                hasPendingEdits: parsed.hasPendingEdits ?? false,
+              });
+            }),
+          );
         } catch {
           // ignore this dir
         }
