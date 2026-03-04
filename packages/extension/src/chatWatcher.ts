@@ -59,8 +59,7 @@ export class ChatWatcher {
   private readonly debounceMs = 500;
 
   constructor(
-    private readonly callbacks: ChatWatcherCallbacks,
-    private readonly outputChannel: vscode.OutputChannel,
+    private readonly callbacks: ChatWatcherCallbacks
   ) { }
 
   async start(): Promise<void> {
@@ -473,15 +472,11 @@ export class ChatWatcher {
 
       for (const storagePath of this.workspaceStoragePaths) {
         const dbPath = path.join(storagePath, 'state.vscdb');
-        this.outputChannel.appendLine(`[ChatWatcher] Reading sessions from ${dbPath}`);
         if (!fs.existsSync(dbPath)) {
           continue;
         }
         try {
           const items = this.readAgentSessionsFromDb(dbPath);
-          this.outputChannel.appendLine(
-            `[ChatWatcher] Found ${items.length} sessions in ${dbPath}`,
-          );
           for (const item of items) {
             if (!item.resource) {
               continue;
