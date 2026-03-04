@@ -62,9 +62,6 @@ export const App: React.FC = () => {
     send('continue_iteration', {});
   };
 
-  const hasPendingEdits = !!sessionsList?.sessions.find((s) => s.sessionId === localActiveSessionId)
-    ?.hasPendingEdits;
-
   // When user clicks a session, always request fresh data from the extension
   const handleSelectSession = useCallback(
     (id: string) => {
@@ -96,7 +93,6 @@ export const App: React.FC = () => {
       extensionStatus={extensionStatus}
       isConnected={isConnected}
       isPaired={isPaired}
-      hasPendingEdits={hasPendingEdits}
       onSelectSession={handleSelectSession}
       onNewSession={handleNewSession}
       onSendMessage={handleSendMessage}

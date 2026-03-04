@@ -54,7 +54,7 @@
     }
   },
   "scripts": {
-    "build": "tsdown --config tsup.config.ts",
+    "build": "tsdown --config tsup.config.ts && node -e \"require('fs').cpSync(require.resolve('sql.js/dist/sql-wasm.wasm'), 'dist/sql-wasm.wasm')\"",
     "dev": "tsdown --config tsup.config.ts --watch",
     "prepackage": "mkdir -p dist/server dist/web && cp ../server/dist/index.js dist/server/index.js && cp -r ../web/dist/* dist/web/",
     "package": "vsce package --no-dependencies",
@@ -62,13 +62,15 @@
   },
   "dependencies": {
     "@remote-pilot/shared": "workspace:*",
+    "sql.js": "^1.14.1",
     "ws": "^8.18.0"
   },
   "devDependencies": {
+    "@types/sql.js": "^1.4.9",
     "@types/vscode": "^1.96.0",
     "@types/ws": "^8.18.0",
+    "@vscode/vsce": "^3.7.1",
     "tsdown": "^0.10.0",
-    "typescript": "^5.8.0",
-    "@vscode/vsce": "^3.7.1"
+    "typescript": "^5.8.0"
   }
 }

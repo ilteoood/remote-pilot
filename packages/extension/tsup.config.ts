@@ -8,5 +8,5 @@ export default defineConfig({
   clean: true,
   sourcemap: true,
   external: ['vscode'],
-  noExternal: ['@remote-pilot/shared', 'ws'],
+  noExternal: ['@remote-pilot/shared', 'ws', 'sql.js'],
 });

@@ -114,15 +114,13 @@ export interface ChatSessionSummary {
   title: string;
   createdAt: string;
   lastMessageAt: string;
-  requestCount: number;
-  /** Whether there are pending edits to accept/reject */
-  hasPendingEdits: boolean;
 }
 
 /** Extension → Server → Web: updated chat session content */
 export interface ChatSessionUpdate {
   sessionId: string;
   requests: ChatRequest[];
+  hasPendingEdits: boolean;
 }
 
 export interface ChatRequest {

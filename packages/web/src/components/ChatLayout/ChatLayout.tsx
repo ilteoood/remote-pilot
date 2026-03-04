@@ -15,7 +15,6 @@ interface ChatLayoutProps {
   extensionStatus: ExtensionStatus | null;
   isConnected: boolean;
   isPaired: boolean;
-  hasPendingEdits: boolean;
   onSelectSession: (id: string) => void;
   onNewSession: () => void;
   onSendMessage: (text: string) => void;
@@ -31,7 +30,6 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
   extensionStatus,
   isConnected,
   isPaired,
-  hasPendingEdits,
   onSelectSession,
   onNewSession,
   onSendMessage,
@@ -94,7 +92,7 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
           onAcceptAll={onAcceptAll}
           onRejectAll={onRejectAll}
           onContinue={onContinue}
-          hasPendingEdits={hasPendingEdits}
+          hasPendingEdits={Boolean(activeSession?.hasPendingEdits)}
           disabled={!isConnected || !isPaired}
         />
       </div>
