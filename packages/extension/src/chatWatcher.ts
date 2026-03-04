@@ -59,9 +59,7 @@ export class ChatWatcher {
   private sqlJsPromise: ReturnType<typeof initSqlJs> | null = null;
   private readonly debounceMs = 500;
 
-  constructor(
-    private readonly callbacks: ChatWatcherCallbacks
-  ) { }
+  constructor(private readonly callbacks: ChatWatcherCallbacks) {}
 
   async start(): Promise<void> {
     const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri;
@@ -214,7 +212,7 @@ export class ChatWatcher {
     }
     const timer = setTimeout(() => {
       this.debouncedReads.delete(filePath);
-      action().catch(() => { });
+      action().catch(() => {});
     }, this.debounceMs);
     this.debouncedReads.set(filePath, { timer });
   }
@@ -529,9 +527,7 @@ export class ChatWatcher {
   }
 
   private getSqlJs(): ReturnType<typeof initSqlJs> {
-    if (!this.sqlJsPromise) {
-      this.sqlJsPromise = initSqlJs({ locateFile: (file) => path.join(__dirname, file) });
-    }
+    this.sqlJsPromise ??= initSqlJs({ locateFile: (file) => path.join(__dirname, file) });
     return this.sqlJsPromise;
   }
 
