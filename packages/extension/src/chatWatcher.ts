@@ -8,12 +8,23 @@ import {
   VscodeChatRequestData,
   VscodeChatSessionFile,
 } from '@remote-pilot/shared';
+import { Database, OPEN_READONLY } from '@vscode/sqlite3';
 import * as vscode from 'vscode';
 import {
   findWorkspaceHashes,
   getWorkspaceStorageRoot,
   toWorkspaceRelativePath,
 } from './workspaceUtils';
+
+interface AgentSessionItem {
+  resource?: string;
+  label?: string;
+  timing?: {
+    created?: number;
+    lastRequestStarted?: number;
+    lastRequestEnded?: number;
+  };
+}
 
 export interface ChatWatcherCallbacks {
   onSessionsList?: (list: ChatSessionsList) => void;
@@ -424,7 +435,11 @@ export class ChatWatcher {
       };
     });
 
-    return this.callbacks.onSessionUpdate?.({ sessionId: session.sessionId, requests });
+    return this.callbacks.onSessionUpdate?.({
+      sessionId: session.sessionId,
+      requests,
+      hasPendingEdits: Boolean(session.hasPendingEdits),
+    });
   }
 
   private toChatEditingState(file: VscodeChatEditingSessionFile): ChatEditingState | null {
@@ -449,64 +464,45 @@ export class ChatWatcher {
   }
 
   public async emitSessionsList(): Promise<void> {
-    if (this.sessionsDirs.length === 0) {
+    if (this.workspaceStoragePaths.length === 0) {
       return;
     }
     try {
       const sessions: ChatSessionsList['sessions'] = [];
-      const seen = new Set<string>();
-      for (const dir of this.sessionsDirs) {
-        try {
-          const recentFiles = await this.getRecentSessionFiles(dir);
 
-          await Promise.allSettled(
-            [...recentFiles].map(async (fullPath) => {
-              const parsed = await this.parseSessionFile(fullPath);
-              if (!parsed) {
-                console.log('[ChatWatcher] failed to parse', fullPath);
-                return;
-              }
-              if (seen.has(parsed.sessionId)) {
-                return;
-              }
-              seen.add(parsed.sessionId);
-              // Skip empty sessions (no requests ever sent)
-              if (parsed.requests.length === 0) {
-                return;
-              }
-              // Prefer customTitle (set via kind=1 patches) over first request message
-              let title = parsed.customTitle || '';
-              if (!title) {
-                const firstRequest = parsed.requests[0];
-                title = firstRequest
-                  ? typeof firstRequest.message === 'string'
-                    ? firstRequest.message
-                    : firstRequest.message.text
-                  : '';
-              }
-              const createdAt = new Date(parsed.creationDate ?? Date.now()).toISOString();
-              // Compute lastMessageAt from the latest request timestamp or lastMessageDate
-              let lastMessageTs = parsed.lastMessageDate || parsed.creationDate || 0;
-              for (const req of parsed.requests) {
-                if (req.timestamp && req.timestamp > lastMessageTs) {
-                  lastMessageTs = req.timestamp;
-                }
-              }
-              const lastMessageAt = lastMessageTs
-                ? new Date(lastMessageTs).toISOString()
-                : createdAt;
-              sessions.push({
-                sessionId: parsed.sessionId,
-                title,
-                createdAt,
-                lastMessageAt,
-                requestCount: parsed.requests.length,
-                hasPendingEdits: parsed.hasPendingEdits ?? false,
-              });
-            }),
-          );
+      for (const storagePath of this.workspaceStoragePaths) {
+        const dbPath = path.join(storagePath, 'state.vscdb');
+        if (!fs.existsSync(dbPath)) {
+          continue;
+        }
+        try {
+          const items = await this.readAgentSessionsFromDb(dbPath);
+          for (const item of items) {
+            if (!item.resource) {
+              continue;
+            }
+            const urlPart = item.resource.split('/').pop();
+            if (!urlPart) {
+              continue;
+            }
+            const sessionId = Buffer.from(urlPart, 'base64').toString('utf-8');
+
+            const createdAt = item.timing?.created
+              ? new Date(item.timing.created).toISOString()
+              : new Date().toISOString();
+            const lastMessageAt = item.timing?.lastRequestEnded
+              ? new Date(item.timing.lastRequestEnded).toISOString()
+              : createdAt;
+
+            sessions.push({
+              sessionId,
+              title: item.label ?? '',
+              createdAt,
+              lastMessageAt,
+            });
+          }
         } catch {
-          // ignore this dir
+          // ignore this db
         }
       }
 
@@ -529,5 +525,36 @@ export class ChatWatcher {
     } catch {
       return;
     }
+  }
+
+  private readAgentSessionsFromDb(dbPath: string): Promise<AgentSessionItem[]> {
+    return new Promise((resolve, reject) => {
+      const db = new Database(dbPath, OPEN_READONLY, (err) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        db.get(
+          "SELECT value FROM ItemTable WHERE key = 'agentSessions.model.cache'",
+          (queryErr: Error | null, row: { value: string } | undefined) => {
+            db.close();
+            if (queryErr) {
+              reject(queryErr);
+              return;
+            }
+            if (!row?.value) {
+              resolve([]);
+              return;
+            }
+            try {
+              const parsed = JSON.parse(row.value) as AgentSessionItem[];
+              resolve(Array.isArray(parsed) ? [...parsed].reverse() : []);
+            } catch {
+              resolve([]);
+            }
+          },
+        );
+      });
+    });
   }
 }

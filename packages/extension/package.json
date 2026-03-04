@@ -62,13 +62,14 @@
   },
   "dependencies": {
     "@remote-pilot/shared": "workspace:*",
+    "@vscode/sqlite3": "5.1.12-vscode",
     "ws": "^8.18.0"
   },
   "devDependencies": {
     "@types/vscode": "^1.96.0",
     "@types/ws": "^8.18.0",
+    "@vscode/vsce": "^3.7.1",
     "tsdown": "^0.10.0",
-    "typescript": "^5.8.0",
-    "@vscode/vsce": "^3.7.1"
+    "typescript": "^5.8.0"
   }
 }

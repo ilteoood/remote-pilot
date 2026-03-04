@@ -74,7 +74,6 @@ const SessionItem: React.FC<{
         >
           {session.title || t('sessionList.untitled')}
         </div>
-        {session.hasPendingEdits && <div className={styles.pendingIndicator} />}
       </div>
       <div className={styles.sessionDate}>
         {new Date(session.lastMessageAt).toLocaleDateString()}
