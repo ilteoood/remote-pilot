@@ -55,8 +55,8 @@ export async function findWorkspaceHashes(
       if (parsed.folder === workspaceUri) {
         hashes.push(entry.name);
       }
-    })
-  )
+    }),
+  );
 
   return hashes;
 }

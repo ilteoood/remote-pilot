@@ -14,7 +14,7 @@ const commandExecutor = async (executor: () => Promise<void>) => {
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
-}
+};
 
 export function sendMessage(prompt: string): Promise<CommandResult> {
   return commandExecutor(async () => {
@@ -23,7 +23,7 @@ export function sendMessage(prompt: string): Promise<CommandResult> {
     await setTimeout(200);
     await vscode.commands.executeCommand('type', { text: prompt });
     await vscode.commands.executeCommand('workbench.action.chat.submit');
-  })
+  });
 }
 
 export function acceptAllEdits(): Promise<CommandResult> {
