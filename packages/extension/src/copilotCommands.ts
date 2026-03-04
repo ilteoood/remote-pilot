@@ -1,4 +1,5 @@
 import * as path from 'node:path';
+import {setTimeout} from 'node:timers/promises';
 import * as vscode from 'vscode';
 
 export interface CommandResult {
@@ -6,13 +7,11 @@ export interface CommandResult {
   error?: string;
 }
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
 export async function sendMessage(prompt: string): Promise<CommandResult> {
   try {
     await vscode.commands.executeCommand('workbench.panel.chat.view.copilot.focus');
     await vscode.commands.executeCommand('workbench.action.chat.focusInput');
-    await sleep(200);
+    await setTimeout(200);
     await vscode.commands.executeCommand('type', { text: prompt });
     await vscode.commands.executeCommand('workbench.action.chat.submit');
     return { success: true };
