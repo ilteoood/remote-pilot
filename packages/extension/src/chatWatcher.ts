@@ -8,7 +8,7 @@ import {
   VscodeChatRequestData,
   VscodeChatSessionFile,
 } from '@remote-pilot/shared';
-import { Database, OPEN_READONLY } from '@vscode/sqlite3';
+import { Database } from 'node-sqlite3-wasm';
 import * as vscode from 'vscode';
 import {
   findWorkspaceHashes,
@@ -56,11 +56,12 @@ export class ChatWatcher {
   private sessionsDirs: string[] = [];
   private editingDirs: string[] = [];
   private debouncedReads = new Map<string, DebounceHandle>();
+  private readonly debounceMs = 500;
 
   constructor(
     private readonly callbacks: ChatWatcherCallbacks,
-    private readonly debounceMs = 500,
-  ) {}
+    private readonly outputChannel: vscode.OutputChannel,
+  ) { }
 
   async start(): Promise<void> {
     const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri;
@@ -213,7 +214,7 @@ export class ChatWatcher {
     }
     const timer = setTimeout(() => {
       this.debouncedReads.delete(filePath);
-      action().catch(() => {});
+      action().catch(() => { });
     }, this.debounceMs);
     this.debouncedReads.set(filePath, { timer });
   }
@@ -472,11 +473,15 @@ export class ChatWatcher {
 
       for (const storagePath of this.workspaceStoragePaths) {
         const dbPath = path.join(storagePath, 'state.vscdb');
+        this.outputChannel.appendLine(`[ChatWatcher] Reading sessions from ${dbPath}`);
         if (!fs.existsSync(dbPath)) {
           continue;
         }
         try {
-          const items = await this.readAgentSessionsFromDb(dbPath);
+          const items = this.readAgentSessionsFromDb(dbPath);
+          this.outputChannel.appendLine(
+            `[ChatWatcher] Found ${items.length} sessions in ${dbPath}`,
+          );
           for (const item of items) {
             if (!item.resource) {
               continue;
@@ -527,34 +532,21 @@ export class ChatWatcher {
     }
   }
 
-  private readAgentSessionsFromDb(dbPath: string): Promise<AgentSessionItem[]> {
-    return new Promise((resolve, reject) => {
-      const db = new Database(dbPath, OPEN_READONLY, (err) => {
-        if (err) {
-          reject(err);
-          return;
-        }
-        db.get(
-          "SELECT value FROM ItemTable WHERE key = 'agentSessions.model.cache'",
-          (queryErr: Error | null, row: { value: string } | undefined) => {
-            db.close();
-            if (queryErr) {
-              reject(queryErr);
-              return;
-            }
-            if (!row?.value) {
-              resolve([]);
-              return;
-            }
-            try {
-              const parsed = JSON.parse(row.value) as AgentSessionItem[];
-              resolve(Array.isArray(parsed) ? [...parsed].reverse() : []);
-            } catch {
-              resolve([]);
-            }
-          },
-        );
-      });
-    });
+  private readAgentSessionsFromDb(dbPath: string): AgentSessionItem[] {
+    const db = new Database(dbPath, { readOnly: true, fileMustExist: true });
+    try {
+      const row = db.get("SELECT value FROM ItemTable WHERE key = 'agentSessions.model.cache'") as {
+        value: string;
+      } | null;
+      if (!row?.value) {
+        return [];
+      }
+      const parsed = JSON.parse(row.value) as AgentSessionItem[];
+      return Array.isArray(parsed) ? [...parsed].reverse() : [];
+    } catch {
+      return [];
+    } finally {
+      db.close();
+    }
   }
 }

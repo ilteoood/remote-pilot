@@ -62,7 +62,7 @@
   },
   "dependencies": {
     "@remote-pilot/shared": "workspace:*",
-    "@vscode/sqlite3": "5.1.12-vscode",
+    "node-sqlite3-wasm": "^0.8.53",
     "ws": "^8.18.0"
   },
   "devDependencies": {

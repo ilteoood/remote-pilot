@@ -181,7 +181,7 @@ async function startRemotePilot(): Promise<void> {
       onSessionsList: (list) => wsClient?.sendChatSessionsList(list),
       onSessionUpdate: (update) => wsClient?.sendChatSessionUpdate(update),
       onEditingState: (state) => wsClient?.sendChatEditingState(state),
-    });
+    }, getOutputChannel());
 
     // Wire up request_session: when web client requests a session, chatWatcher reads it from disk
     wsClient.onRequestSession((sessionId) => {
