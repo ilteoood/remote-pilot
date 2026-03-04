@@ -83,8 +83,7 @@ export class ChatWatcher {
           const fullPath = path.join(dir, `${sessionId}.jsonl`);
           const parsed = await this.parseSessionFile(fullPath);
           if (parsed?.sessionId === sessionId) {
-            const update = this.toChatSessionUpdate(parsed);
-            this.callbacks.onSessionUpdate?.(update);
+            this.updateSession(parsed);
             return true;
           }
         } catch {
@@ -213,8 +212,7 @@ export class ChatWatcher {
     if (!parsed) {
       return;
     }
-    const update = this.toChatSessionUpdate(parsed);
-    this.callbacks.onSessionUpdate?.(update);
+    this.updateSession(parsed);
   }
 
   private async handleEditingStateFile(filePath: string): Promise<void> {
@@ -364,7 +362,7 @@ export class ChatWatcher {
     return '';
   }
 
-  private toChatSessionUpdate(session: VscodeChatSessionFile): ChatSessionUpdate {
+  private updateSession(session: VscodeChatSessionFile) {
     const requests = session.requests.map((request) => {
       const message = typeof request.message === 'string' ? request.message : request.message.text;
       const responseParts = request.response
@@ -426,7 +424,7 @@ export class ChatWatcher {
       };
     });
 
-    return { sessionId: session.sessionId, requests };
+    return this.callbacks.onSessionUpdate?.({ sessionId: session.sessionId, requests });
   }
 
   private toChatEditingState(file: VscodeChatEditingSessionFile): ChatEditingState | null {
