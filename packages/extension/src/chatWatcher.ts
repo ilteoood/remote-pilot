@@ -34,6 +34,8 @@ const UI_ONLY_KINDS = new Set([
   'progressTaskSerialized',
 ]);
 
+const SUPPORTED_EXTENSION = '.jsonl';
+
 export class ChatWatcher {
   private readonly disposables: vscode.Disposable[] = [];
   // we may have more than one storage hash for the same workspace (e.g. normal vs dev-host)
@@ -80,7 +82,7 @@ export class ChatWatcher {
     try {
       for (const dir of this.sessionsDirs) {
         try {
-          const fullPath = path.join(dir, `${sessionId}.jsonl`);
+          const fullPath = path.join(dir, `${sessionId}${SUPPORTED_EXTENSION}`);
           const parsed = await this.parseSessionFile(fullPath);
           if (parsed?.sessionId === sessionId) {
             this.updateSession(parsed);
@@ -124,7 +126,7 @@ export class ChatWatcher {
    */
   private async getRecentSessionFiles(dir: string, limit = 10): Promise<Set<string>> {
     const files = await fs.promises.readdir(dir);
-    const sessionFiles = files.filter((f) => f.match(/\.jsonl?$/));
+    const sessionFiles = files.filter((f) => f.endsWith(SUPPORTED_EXTENSION));
     const fileStats = await Promise.all(
       sessionFiles.map(async (file) => {
         const fullPath = path.join(dir, file);
@@ -153,20 +155,18 @@ export class ChatWatcher {
       try {
         let recentFiles = await this.getRecentSessionFiles(dir);
         const watcher = fs.watch(dir, async (event, filename) => {
-          if (!filename?.match(/\.jsonl?$/)) {
+          if (!filename?.endsWith(SUPPORTED_EXTENSION)) {
             return;
           }
           if (event === 'rename') {
             recentFiles = await this.getRecentSessionFiles(dir);
+            await this.emitSessionsList();
           }
           const fullPath = path.join(dir, filename);
           if (!recentFiles.has(fullPath)) {
             return;
           }
-          this.debounceRead(fullPath, async () => {
-            await this.handleSessionFile(fullPath);
-            await this.emitSessionsList();
-          });
+          this.debounceRead(fullPath, () => this.handleSessionFile(fullPath));
         });
         this.sessionWatchers.push(watcher);
       } catch {
