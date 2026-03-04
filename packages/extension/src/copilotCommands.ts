@@ -1,5 +1,5 @@
 import * as path from 'node:path';
-import {setTimeout} from 'node:timers/promises';
+import { setTimeout } from 'node:timers/promises';
 import * as vscode from 'vscode';
 
 export interface CommandResult {
@@ -7,35 +7,35 @@ export interface CommandResult {
   error?: string;
 }
 
-export async function sendMessage(prompt: string): Promise<CommandResult> {
+const commandExecutor = async (executor: () => Promise<void>) => {
   try {
+    await executor();
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+export function sendMessage(prompt: string): Promise<CommandResult> {
+  return commandExecutor(async () => {
     await vscode.commands.executeCommand('workbench.panel.chat.view.copilot.focus');
     await vscode.commands.executeCommand('workbench.action.chat.focusInput');
     await setTimeout(200);
     await vscode.commands.executeCommand('type', { text: prompt });
     await vscode.commands.executeCommand('workbench.action.chat.submit');
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : String(error) };
-  }
+  })
 }
 
-export async function acceptAllEdits(): Promise<CommandResult> {
-  try {
+export function acceptAllEdits(): Promise<CommandResult> {
+  return commandExecutor(async () => {
     await vscode.commands.executeCommand('chatEditing.acceptAllFiles');
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : String(error) };
-  }
+  });
 }
 
-export async function rejectAllEdits(): Promise<CommandResult> {
-  try {
+export function rejectAllEdits(): Promise<CommandResult> {
+  return commandExecutor(async () => {
     await vscode.commands.executeCommand('chatEditing.discardAllFiles');
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : String(error) };
-  }
+  });
 }
 
 async function resolveFileUri(filePath: string): Promise<vscode.Uri | null> {
@@ -49,64 +49,48 @@ async function resolveFileUri(filePath: string): Promise<vscode.Uri | null> {
   return vscode.Uri.joinPath(workspaceRoot!, filePath);
 }
 
-export async function acceptFileEdit(filePath: string): Promise<CommandResult> {
-  try {
+export function acceptFileEdit(filePath: string): Promise<CommandResult> {
+  return commandExecutor(async () => {
     const uri = await resolveFileUri(filePath);
     if (!uri) {
-      return { success: false, error: 'No workspace available to resolve file path' };
+      throw new Error('No workspace available to resolve file path');
     }
     const doc = await vscode.workspace.openTextDocument(uri);
     await vscode.window.showTextDocument(doc, { preview: false });
     await vscode.commands.executeCommand('chatEditing.acceptFile');
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : String(error) };
-  }
+  });
 }
 
-export async function rejectFileEdit(filePath: string): Promise<CommandResult> {
-  try {
+export function rejectFileEdit(filePath: string): Promise<CommandResult> {
+  return commandExecutor(async () => {
     const uri = await resolveFileUri(filePath);
     if (!uri) {
-      return { success: false, error: 'No workspace available to resolve file path' };
+      throw new Error('No workspace available to resolve file path');
     }
     const doc = await vscode.workspace.openTextDocument(uri);
     await vscode.window.showTextDocument(doc, { preview: false });
     await vscode.commands.executeCommand('chatEditing.discardFile');
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : String(error) };
-  }
+  });
 }
 
-export async function continueIteration(): Promise<CommandResult> {
-  try {
+export function continueIteration(): Promise<CommandResult> {
+  return commandExecutor(async () => {
     try {
-      await vscode.commands.executeCommand('workbench.action.chat.retry');
-      return { success: true };
-    } catch {
       await vscode.commands.executeCommand('github.copilot.chat.review.continueInChat');
-      return { success: true };
+    } catch {
+      await vscode.commands.executeCommand('workbench.action.chat.retry');
     }
-  } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : String(error) };
-  }
+  });
 }
 
-export async function cancelRequest(): Promise<CommandResult> {
-  try {
+export function cancelRequest(): Promise<CommandResult> {
+  return commandExecutor(async () => {
     await vscode.commands.executeCommand('workbench.action.chat.cancel');
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : String(error) };
-  }
+  });
 }
 
-export async function newChatSession(): Promise<CommandResult> {
-  try {
+export function newChatSession(): Promise<CommandResult> {
+  return commandExecutor(async () => {
     await vscode.commands.executeCommand('workbench.action.chat.newChat');
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : String(error) };
-  }
+  });
 }
