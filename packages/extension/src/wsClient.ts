@@ -26,9 +26,9 @@ export class WsClient {
   private readonly serverPort: number;
   private readonly serverToken: string;
   private readonly role: string;
-  private reconnectTimer: NodeJS.Timeout | null = null;
+  private reconnectTimer: NodeJS.Timeout | undefined = undefined;
   private reconnectDelay = 1000;
-  private pingInterval: NodeJS.Timeout | null = null;
+  private pingInterval: NodeJS.Timeout | undefined = undefined;
   private requestSessionHandler?: (sessionId: string) => Promise<boolean>;
   private requestSessionsListHandler?: () => Promise<void>;
   constructor(serverPort: number, serverToken: string, role = 'extension') {
@@ -38,7 +38,7 @@ export class WsClient {
   }
 
   connect(): void {
-    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+    if (this.socket?.readyState === WebSocket.OPEN) {
       return;
     }
     this.clearReconnect();
@@ -79,15 +79,13 @@ export class WsClient {
   disconnect(): void {
     this.clearReconnect();
     this.stopPing();
-    if (this.socket) {
-      this.socket.removeAllListeners();
-      this.socket.close();
-      this.socket = null;
-    }
+    this.socket?.removeAllListeners();
+    this.socket?.close();
+    this.socket = null;
   }
 
   isConnected(): boolean {
-    return !!this.socket && this.socket.readyState === WebSocket.OPEN;
+    return this.socket?.readyState === WebSocket.OPEN;
   }
 
   onRequestSession(handler: (sessionId: string) => Promise<boolean>): void {
@@ -98,7 +96,7 @@ export class WsClient {
     this.requestSessionsListHandler = handler;
   }
   send(message: WsMessage): void {
-    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+    if (this.socket?.readyState !== WebSocket.OPEN) {
       return;
     }
     this.socket.send(JSON.stringify(message));
@@ -120,14 +118,12 @@ export class WsClient {
     this.stopPing();
     this.pingInterval = setInterval(() => {
       this.send(createMessage('ping', {}));
-    }, 30000);
+    }, 30_000);
   }
 
   private stopPing(): void {
-    if (this.pingInterval) {
-      clearInterval(this.pingInterval);
-      this.pingInterval = null;
-    }
+    clearInterval(this.pingInterval);
+    this.pingInterval = undefined;
   }
 
   private scheduleReconnect(): void {
@@ -136,17 +132,15 @@ export class WsClient {
     }
     const delay = this.reconnectDelay;
     this.reconnectTimer = setTimeout(() => {
-      this.reconnectTimer = null;
+      this.reconnectTimer = undefined;
       this.connect();
-      this.reconnectDelay = Math.min(this.reconnectDelay * 2, 30000);
+      this.reconnectDelay = Math.min(this.reconnectDelay * 2, 30_000);
     }, delay);
   }
 
   private clearReconnect(): void {
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer);
-      this.reconnectTimer = null;
-    }
+    clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = undefined;
   }
 
   private async handleIncoming(message: WsMessage): Promise<void> {
