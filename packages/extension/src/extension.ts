@@ -100,7 +100,7 @@ function spawnServer(): Promise<ServerInfo> {
         settled = true;
         reject(new Error('Server did not become ready within 10 seconds'));
       }
-    }, 10000);
+    }, 10_000);
 
     const handleStdout = (data: Buffer) => {
       const lines = data.toString().split('\n');
@@ -179,11 +179,14 @@ async function startRemotePilot(): Promise<void> {
     serverInfo = await spawnServer();
     wsClient = new WsClient(serverInfo.port, serverInfo.token);
     wsClient.connect();
-    chatSessions = new ChatSessions((list) => wsClient?.sendChatSessionsList(list))
-    chatWatcher = new ChatWatcher({
-      onSessionUpdate: (update) => wsClient?.sendChatSessionUpdate(update),
-      onEditingState: (state) => wsClient?.sendChatEditingState(state),
-    }, chatSessions);
+    chatSessions = new ChatSessions((list) => wsClient?.sendChatSessionsList(list));
+    chatWatcher = new ChatWatcher(
+      {
+        onSessionUpdate: (update) => wsClient?.sendChatSessionUpdate(update),
+        onEditingState: (state) => wsClient?.sendChatEditingState(state),
+      },
+      chatSessions,
+    );
 
     // Wire up request_session: when web client requests a session, chatWatcher reads it from disk
     wsClient.onRequestSession((sessionId) => {
