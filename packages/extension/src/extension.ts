@@ -1,6 +1,7 @@
 import { ChildProcess, fork } from 'node:child_process';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
+import { ChatSessions } from './chatSessions';
 import { ChatWatcher } from './chatWatcher';
 import { WsClient } from './wsClient';
 
@@ -12,6 +13,7 @@ interface ServerInfo {
 
 let statusBar: vscode.StatusBarItem | null = null;
 let wsClient: WsClient | null = null;
+let chatSessions: ChatSessions | null = null;
 let chatWatcher: ChatWatcher | null = null;
 let serverProcess: ChildProcess | null = null;
 let serverInfo: ServerInfo | null = null;
@@ -177,11 +179,11 @@ async function startRemotePilot(): Promise<void> {
     serverInfo = await spawnServer();
     wsClient = new WsClient(serverInfo.port, serverInfo.token);
     wsClient.connect();
+    chatSessions = new ChatSessions((list) => wsClient?.sendChatSessionsList(list))
     chatWatcher = new ChatWatcher({
-      onSessionsList: (list) => wsClient?.sendChatSessionsList(list),
       onSessionUpdate: (update) => wsClient?.sendChatSessionUpdate(update),
       onEditingState: (state) => wsClient?.sendChatEditingState(state),
-    });
+    }, chatSessions);
 
     // Wire up request_session: when web client requests a session, chatWatcher reads it from disk
     wsClient.onRequestSession((sessionId) => {
@@ -193,12 +195,12 @@ async function startRemotePilot(): Promise<void> {
 
     // Wire up request_sessions_list: when web client requests the sessions list
     wsClient.onRequestSessionsList(() => {
-      if (!chatWatcher) {
+      if (!chatSessions) {
         return Promise.resolve();
       }
-      return chatWatcher.emitSessionsList();
+      return chatSessions.emitSessionsList();
     });
-
+    await chatSessions.start();
     await chatWatcher.start();
 
     updateStatus(true);
@@ -221,7 +223,9 @@ async function startRemotePilot(): Promise<void> {
 }
 
 function stopRemotePilot(): void {
+  chatSessions?.stop();
   chatWatcher?.stop();
+  chatSessions = null;
   chatWatcher = null;
   wsClient?.disconnect();
   wsClient = null;

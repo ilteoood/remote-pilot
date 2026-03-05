@@ -2,32 +2,16 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {
   ChatEditingState,
-  ChatSessionsList,
   ChatSessionUpdate,
   VscodeChatEditingSessionFile,
   VscodeChatRequestData,
   VscodeChatSessionFile,
 } from '@remote-pilot/shared';
-import initSqlJs from 'sql.js';
 import * as vscode from 'vscode';
-import {
-  findWorkspaceHashes,
-  getWorkspaceStorageRoot,
-  toWorkspaceRelativePath,
-} from './workspaceUtils';
-
-interface AgentSessionItem {
-  resource?: string;
-  label?: string;
-  timing?: {
-    created?: number;
-    lastRequestStarted?: number;
-    lastRequestEnded?: number;
-  };
-}
+import { ChatSessions } from './chatSessions';
+import { toWorkspaceRelativePath } from './workspaceUtils';
 
 export interface ChatWatcherCallbacks {
-  onSessionsList?: (list: ChatSessionsList) => void;
   onSessionUpdate?: (update: ChatSessionUpdate) => void;
   onEditingState?: (state: ChatEditingState) => void;
 }
@@ -52,35 +36,20 @@ export class ChatWatcher {
   // we may have more than one storage hash for the same workspace (e.g. normal vs dev-host)
   private sessionWatchers: fs.FSWatcher[] = [];
   private editingWatchers: fs.FSWatcher[] = [];
-  private workspaceStoragePaths: string[] = []; // list of matched hashes
   private sessionsDirs: string[] = [];
   private editingDirs: string[] = [];
   private debouncedReads = new Map<string, DebounceHandle>();
-  private sqlJsPromise: ReturnType<typeof initSqlJs> | null = null;
   private readonly debounceMs = 500;
 
   constructor(
-    private readonly callbacks: ChatWatcherCallbacks
-  ) { }
+    private readonly callbacks: ChatWatcherCallbacks,
+    private chatSessions: ChatSessions,
+  ) {}
 
   async start(): Promise<void> {
-    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri;
-    if (!workspaceRoot) {
-      return;
-    }
-
-    const storageRoot = getWorkspaceStorageRoot();
-    const workspaceHashes = await findWorkspaceHashes(storageRoot, workspaceRoot.toString());
-    if (workspaceHashes.length === 0) {
-      return;
-    }
-
-    this.workspaceStoragePaths = workspaceHashes.map((h) => path.join(storageRoot, h));
-    this.sessionsDirs = this.workspaceStoragePaths.map((p) => path.join(p, 'chatSessions'));
-    this.editingDirs = this.workspaceStoragePaths.map((p) => path.join(p, 'chatEditingSessions'));
-    console.log('[ChatWatcher] workspaceHashes', workspaceHashes);
-    console.log('[ChatWatcher] sessionsDirs', this.sessionsDirs);
-    console.log('[ChatWatcher] editingDirs', this.editingDirs);
+    const workspaceStoragePaths = this.chatSessions.workspaceStoragePaths;
+    this.sessionsDirs = workspaceStoragePaths.map((p) => path.join(p, 'chatSessions'));
+    this.editingDirs = workspaceStoragePaths.map((p) => path.join(p, 'chatEditingSessions'));
 
     this.watchSessions();
     this.watchEditingSessions();
@@ -121,7 +90,6 @@ export class ChatWatcher {
     this.editingWatchers = [];
     this.sessionsDirs = [];
     this.editingDirs = [];
-    this.workspaceStoragePaths = [];
 
     this.debouncedReads.forEach((handle) => {
       clearTimeout(handle.timer);
@@ -172,7 +140,7 @@ export class ChatWatcher {
           }
           if (event === 'rename') {
             recentFiles = await this.getRecentSessionFiles(dir);
-            await this.emitSessionsList();
+            await this.chatSessions.emitSessionsList();
           }
           const fullPath = path.join(dir, filename);
           if (!recentFiles.has(fullPath)) {
@@ -214,7 +182,7 @@ export class ChatWatcher {
     }
     const timer = setTimeout(() => {
       this.debouncedReads.delete(filePath);
-      action().catch(() => { });
+      action().catch(() => {});
     }, this.debounceMs);
     this.debouncedReads.set(filePath, { timer });
   }
@@ -462,100 +430,5 @@ export class ChatWatcher {
     });
 
     return { sessionId, entries: mappedEntries };
-  }
-
-  public async emitSessionsList(): Promise<void> {
-    if (this.workspaceStoragePaths.length === 0) {
-      return;
-    }
-    try {
-      const sessions: ChatSessionsList['sessions'] = [];
-
-      for (const storagePath of this.workspaceStoragePaths) {
-        const dbPath = path.join(storagePath, 'state.vscdb');
-        if (!fs.existsSync(dbPath)) {
-          continue;
-        }
-        try {
-          const items = await this.readAgentSessionsFromDb(dbPath);
-          for (const item of items) {
-            if (!item.resource) {
-              continue;
-            }
-            const urlPart = item.resource.split('/').pop();
-            if (!urlPart) {
-              continue;
-            }
-            const sessionId = Buffer.from(urlPart, 'base64').toString('utf-8');
-
-            const createdAt = item.timing?.created
-              ? new Date(item.timing.created).toISOString()
-              : new Date().toISOString();
-            const lastMessageAt = item.timing?.lastRequestEnded
-              ? new Date(item.timing.lastRequestEnded).toISOString()
-              : createdAt;
-
-            sessions.push({
-              sessionId,
-              title: item.label ?? '',
-              createdAt,
-              lastMessageAt,
-            });
-          }
-        } catch {
-          // ignore this db
-        }
-      }
-
-      // Sort sessions by lastMessageAt descending (newest first) to match VS Code ordering
-      sessions.sort(
-        (a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime(),
-      );
-
-      const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri;
-      if (!workspaceRoot) {
-        return;
-      }
-      const list: ChatSessionsList = {
-        workspaceName: path.basename(workspaceRoot.fsPath),
-        workspacePath: workspaceRoot.fsPath,
-        sessions,
-      };
-      console.log(`[ChatWatcher] emitting sessions list (${sessions.length} sessions)`);
-      this.callbacks.onSessionsList?.(list);
-    } catch {
-      return;
-    }
-  }
-
-  private getSqlJs(): ReturnType<typeof initSqlJs> {
-    if (!this.sqlJsPromise) {
-      this.sqlJsPromise = initSqlJs({ locateFile: (file) => path.join(__dirname, file) });
-    }
-    return this.sqlJsPromise;
-  }
-
-  private async readAgentSessionsFromDb(dbPath: string): Promise<AgentSessionItem[]> {
-    const SQL = await this.getSqlJs();
-    const fileBuffer = fs.readFileSync(dbPath);
-    const db = new SQL.Database(fileBuffer);
-    try {
-      const results = db.exec(
-        "SELECT value FROM ItemTable WHERE key = 'agentSessions.model.cache'",
-      );
-      if (!results.length || !results[0].values.length) {
-        return [];
-      }
-      const value = results[0].values[0][0];
-      if (typeof value !== 'string') {
-        return [];
-      }
-      const parsed = JSON.parse(value) as AgentSessionItem[];
-      return Array.isArray(parsed) ? [...parsed].reverse() : [];
-    } catch {
-      return [];
-    } finally {
-      db.close();
-    }
   }
 }
