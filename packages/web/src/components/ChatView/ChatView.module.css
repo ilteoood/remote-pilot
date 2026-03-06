@@ -1,7 +1,9 @@
 .container {
   height: 100%;
-  overflow-y: auto;
-  padding: var(--space-md);
+}
+
+.row {
+  padding: 0 var(--space-md);
 }
 
 .emptyState {

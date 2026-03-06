@@ -1,8 +1,30 @@
-import { ChatSessionUpdate } from '@remote-pilot/shared';
-import React, { useEffect, useRef } from 'react';
+import { ChatResponsePart, ChatSessionUpdate } from '@remote-pilot/shared';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { List, ListImperativeAPI, RowComponentProps, useDynamicRowHeight } from 'react-window';
 import { MessageBubble } from '../MessageBubble/MessageBubble';
 import styles from './ChatView.module.css';
+
+type RowItem =
+  | { type: 'user'; requestId: string; message: string }
+  | { type: 'assistant'; requestId: string; parts: ChatResponsePart[]; isStreaming: boolean };
+
+interface ChatRowProps {
+  items: RowItem[];
+}
+
+const ChatRow = ({ index, style, ariaAttributes, items }: RowComponentProps<ChatRowProps>) => {
+  const item = items[index];
+  return (
+    <div {...ariaAttributes} style={style} className={styles.row}>
+      {item.type === 'user' ? (
+        <MessageBubble userRole="user" content={item.message} />
+      ) : (
+        <MessageBubble userRole="assistant" parts={item.parts} />
+      )}
+    </div>
+  );
+};
 
 interface ChatViewProps {
   session: ChatSessionUpdate | null;
@@ -10,11 +32,30 @@ interface ChatViewProps {
 
 export const ChatView: React.FC<ChatViewProps> = ({ session }) => {
   const { t } = useTranslation();
-  const endRef = useRef<HTMLDivElement>(null);
+  const dynamicRowHeight = useDynamicRowHeight({ defaultRowHeight: 80, key: session?.sessionId });
+  const listRef = useRef<ListImperativeAPI | null>(null);
+
+  const rowProps = useMemo<{items: RowItem[]}>(() => {
+    const items = session?.requests.flatMap((req) => {
+      const rows: RowItem[] = [{ type: 'user', requestId: req.requestId, message: req.message }];
+      if (req.responseParts.length > 0 || req.isStreaming) {
+        rows.push({
+          type: 'assistant',
+          requestId: req.requestId,
+          parts: req.responseParts,
+          isStreaming: req.isStreaming,
+        });
+      }
+      return rows;
+    }) ?? [];
+    return { items };
+  }, [session]);
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, []);
+    if (rowProps.items.length > 0) {
+      listRef.current?.scrollToRow({ index: rowProps.items.length - 1, align: 'end' });
+    }
+  }, [rowProps.items.length]);
 
   if (!session) {
     return (
@@ -28,16 +69,14 @@ export const ChatView: React.FC<ChatViewProps> = ({ session }) => {
   }
 
   return (
-    <div className={styles.container}>
-      {session.requests.map((req) => (
-        <React.Fragment key={req.requestId}>
-          <MessageBubble userRole="user" content={req.message} />
-          {(req.responseParts.length > 0 || req.isStreaming) && (
-            <MessageBubble userRole="assistant" parts={req.responseParts} />
-          )}
-        </React.Fragment>
-      ))}
-      <div ref={endRef} />
-    </div>
+    <List
+      className={styles.container}
+      rowComponent={ChatRow}
+      rowCount={rowProps.items.length}
+      rowHeight={dynamicRowHeight}
+      rowProps={rowProps}
+      listRef={listRef}
+      style={{ height: '100%' }}
+    />
   );
 };
