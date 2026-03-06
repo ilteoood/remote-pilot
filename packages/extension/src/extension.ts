@@ -1,8 +1,7 @@
 import { ChildProcess, fork } from 'node:child_process';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
-import { ChatSessions } from './chatSessions';
-import { ChatWatcher } from './chatWatcher';
+import { ChatSessions, ChatWatcher } from './chat';
 import { WsClient } from './wsClient';
 
 interface ServerInfo {

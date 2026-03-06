@@ -1,4 +1,4 @@
-import { WsMessageType } from '@remote-pilot/shared';
+import type { WsMessage, WsMessageType } from '@remote-pilot/shared';
 
 export type ClientRole = 'extension' | 'web';
 
@@ -9,10 +9,10 @@ export type ClientInfo = {
 };
 
 export type AnyWsMessage = {
-  [K in WsMessageType]: import('@remote-pilot/shared').WsMessage<K>;
+  [K in WsMessageType]: WsMessage<K>;
 }[WsMessageType];
 
-export const extensionToWebTypes: WsMessageType[] = [
+export const extensionToWebTypes: readonly WsMessageType[] = [
   'chat_sessions_list',
   'chat_session_update',
   'chat_editing_state',
@@ -20,7 +20,7 @@ export const extensionToWebTypes: WsMessageType[] = [
   'command_ack',
 ];
 
-export const webToExtensionTypes: WsMessageType[] = [
+export const webToExtensionTypes: readonly WsMessageType[] = [
   'send_message',
   'accept_all_edits',
   'reject_all_edits',
@@ -36,21 +36,8 @@ export const webToExtensionTypes: WsMessageType[] = [
 export const allTypes = new Set<WsMessageType>([
   'pair_request',
   'pair_response',
-  'chat_sessions_list',
-  'chat_session_update',
-  'chat_editing_state',
-  'send_message',
-  'accept_all_edits',
-  'reject_all_edits',
-  'accept_file_edit',
-  'reject_file_edit',
-  'continue_iteration',
-  'cancel_request',
-  'new_chat_session',
-  'request_session',
-  'request_sessions_list',
-  'command_ack',
+  ...extensionToWebTypes,
+  ...webToExtensionTypes,
   'ping',
   'pong',
-  'extension_status',
 ]);

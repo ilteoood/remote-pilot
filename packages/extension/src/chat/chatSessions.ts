@@ -3,7 +3,7 @@ import * as path from 'node:path';
 import { ChatSessionsList } from '@remote-pilot/shared';
 import initSqlJs from 'sql.js';
 import * as vscode from 'vscode';
-import { findWorkspaceHashes, getWorkspaceStorageRoot } from './workspaceUtils';
+import { findWorkspaceHashes, getWorkspaceStorageRoot } from '../workspaceUtils';
 
 interface AgentSessionItem {
   resource?: string;
