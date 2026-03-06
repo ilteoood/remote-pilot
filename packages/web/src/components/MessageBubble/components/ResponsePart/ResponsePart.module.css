@@ -4,3 +4,28 @@
   border-left: 2px solid var(--border-subtle);
   padding-left: 8px;
 }
+
+.textEdit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  background: var(--bg-subtle, rgba(127, 127, 127, 0.1));
+  font-size: 0.85em;
+  margin: 2px 0;
+}
+
+.textEditIcon {
+  font-size: 0.9em;
+  opacity: 0.7;
+}
+
+.textEditLabel {
+  color: var(--text-secondary, #888);
+}
+
+.textEditFile {
+  font-family: var(--font-mono, monospace);
+  font-weight: 500;
+}

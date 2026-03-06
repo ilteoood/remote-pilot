@@ -2,7 +2,6 @@ import type { ChatResponsePart, ChatSessionUpdate } from '@remote-pilot/shared';
 import type { VscodeChatResponseItem, VscodeChatSessionFile } from './types';
 
 const UI_ONLY_KINDS = new Set([
-  'textEditGroup',
   'undoStop',
   'codeblockUri',
   'confirmation',
@@ -25,7 +24,7 @@ export function transformSession(session: VscodeChatSessionFile): ChatSessionUpd
           return Boolean(t);
         });
 
-      const mergedParts = mergeConsecutiveMarkdown(responseParts);
+      const mergedParts = deduplicateTextEdits(mergeConsecutiveMarkdown(responseParts));
 
       const lastResponse = request.response.at(-1);
       return {
@@ -88,7 +87,21 @@ function transformResponseItem(item: VscodeChatResponseItem): ChatResponsePart |
     }
   }
 
-  // Skip UI-only items like textEditGroup, undoStop, codeblockUri, etc.
+  // File edits – extract the file path from the URI
+  if (kind === 'textEditGroup') {
+    const uri = item.uri as Record<string, unknown> | undefined;
+    const filePath = (uri?.path as string) || '';
+    if (!filePath) {
+      return null;
+    }
+    return {
+      kind: 'text_edit' as const,
+      content: filePath,
+      filePath,
+    };
+  }
+
+  // Skip UI-only items like undoStop, codeblockUri, etc.
   if (UI_ONLY_KINDS.has(kind)) {
     return null;
   }
@@ -98,18 +111,41 @@ function transformResponseItem(item: VscodeChatResponseItem): ChatResponsePart |
 
 /**
  * Merge consecutive markdown parts into a single part to reduce payload size.
+ * Also strips empty code fences that VS Code uses as placeholders for file edit widgets.
  */
 function mergeConsecutiveMarkdown(parts: ChatResponsePart[]): ChatResponsePart[] {
   const merged: ChatResponsePart[] = [];
   for (const part of parts) {
+    const effective =
+      part.kind === 'markdown'
+        ? { ...part, content: part.content.replace(/```\s*```/g, '').trim() }
+        : part;
+    if (!effective.content) continue;
     const prev = merged.at(-1);
-    if (prev?.kind === 'markdown' && part.kind === 'markdown') {
-      prev.content += part.content;
+    if (prev?.kind === 'markdown' && effective.kind === 'markdown') {
+      prev.content += `\n${effective.content}`;
     } else {
-      merged.push(part);
+      merged.push(effective);
     }
   }
   return merged;
+}
+
+/**
+ * Deduplicate consecutive text_edit parts that reference the same file path.
+ * VS Code may emit multiple textEditGroup items for the same file as edits stream in.
+ */
+function deduplicateTextEdits(parts: ChatResponsePart[]): ChatResponsePart[] {
+  const result: ChatResponsePart[] = [];
+  const seenEditPaths = new Set<string>();
+  for (const part of parts) {
+    if (part.kind === 'text_edit' && part.filePath) {
+      if (seenEditPaths.has(part.filePath)) continue;
+      seenEditPaths.add(part.filePath);
+    }
+    result.push(part);
+  }
+  return result;
 }
 
 /**

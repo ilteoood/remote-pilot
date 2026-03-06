@@ -138,12 +138,14 @@ export interface ChatRequest {
 }
 
 export interface ChatResponsePart {
-  kind: 'markdown' | 'tool_invocation' | 'code_citation' | 'unknown';
+  kind: 'markdown' | 'tool_invocation' | 'code_citation' | 'text_edit' | 'unknown';
   /** Markdown text or tool description */
   content: string;
   /** For tool invocations */
   toolName?: string;
   toolStatus?: 'running' | 'completed' | 'failed';
+  /** For text_edit: workspace-relative file path */
+  filePath?: string;
 }
 
 /** Extension → Server → Web: editing session state */

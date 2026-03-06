@@ -22,6 +22,17 @@ export const ResponsePart: React.FC<ResponsePartProps> = ({ part }) => {
     return <ToolInvocation part={part} />;
   }
 
+  if (part.kind === 'text_edit') {
+    const fileName = part.filePath?.split('/').pop() || part.content;
+    return (
+      <div className={styles.textEdit}>
+        <span className={styles.textEditIcon}>✎</span>
+        <span className={styles.textEditLabel}>Edited</span>
+        <span className={styles.textEditFile} title={part.filePath}>{fileName}</span>
+      </div>
+    );
+  }
+
   if (part.kind === 'code_citation') {
     return <div className={styles.citation}>Citation: {part.content}</div>;
   }
