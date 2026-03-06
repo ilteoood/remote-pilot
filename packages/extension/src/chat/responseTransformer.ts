@@ -18,13 +18,11 @@ export function transformSession(session: VscodeChatSessionFile): ChatSessionUpd
       const message = typeof request.message === 'string' ? request.message : request.message.text;
       const responseParts = request.response
         .map(transformResponseItem)
-        // drop parts whose content is empty or just a code fence
-        .filter((part): part is NonNullable<typeof part> => {
-          const t = part?.content.trim();
-          return Boolean(t);
-        });
+        .filter((part): part is NonNullable<typeof part> => Boolean(part?.content.trim()));
 
-      const mergedParts = deduplicateTextEdits(mergeConsecutiveMarkdown(responseParts));
+      const mergedParts = deduplicateTextEdits(
+        stripOrphanFences(mergeConsecutiveMarkdown(responseParts)),
+      );
 
       const lastResponse = request.response.at(-1);
       return {
@@ -129,6 +127,39 @@ function mergeConsecutiveMarkdown(parts: ChatResponsePart[]): ChatResponsePart[]
     }
   }
   return merged;
+}
+
+/**
+ * Strip orphan code fences (``` markers) from markdown parts that sit next to
+ * text_edit parts. VS Code wraps each textEditGroup widget in ``` fences;
+ * after we extract those as text_edit parts, the surrounding fences become
+ * orphans that produce empty code blocks in the rendered output.
+ */
+function stripOrphanFences(parts: ChatResponsePart[]): ChatResponsePart[] {
+  const result: ChatResponsePart[] = [];
+  const partsLength = parts.length;
+  for (let i = 0; i < partsLength; i++) {
+    const part = parts[i];
+    if (part.kind !== 'markdown') {
+      result.push(part);
+      continue;
+    }
+    const prevIsEdit = parts[i - 1]?.kind === 'text_edit';
+    const nextIsEdit = parts[i + 1]?.kind === 'text_edit';
+    let content = part.content;
+    // Strip trailing ``` when the next part is a text_edit
+    if (nextIsEdit) {
+      content = content.replace(/\n?```\s*$/, '').trimEnd();
+    }
+    // Strip leading ``` when the previous part is a text_edit
+    if (prevIsEdit) {
+      content = content.replace(/^```\s*\n?/, '').trimStart();
+    }
+    if (content) {
+      result.push({ ...part, content });
+    }
+  }
+  return result;
 }
 
 /**
