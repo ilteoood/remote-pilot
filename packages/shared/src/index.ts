@@ -258,6 +258,7 @@ export interface VscodeChatResponseItem {
   generatedTitle?: unknown;
   // Inline reference fields
   inlineReference?: unknown;
+  name?: string;
   resolveId?: string;
   // Text edit group fields
   uri?: string;

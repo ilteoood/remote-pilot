@@ -21,7 +21,6 @@ interface DebounceHandle {
 }
 
 const UI_ONLY_KINDS = new Set([
-  'inlineReference',
   'textEditGroup',
   'undoStop',
   'codeblockUri',
@@ -329,6 +328,22 @@ export class ChatWatcher {
   }
 
   /**
+   * Extract the display name from an inlineReference item.
+   * The reference may be an object with a `name` property, or a nested object
+   * whose `name` lives inside an `inlineReference` sub-object.
+   */
+  private extractInlineReferenceName(ref: unknown): string {
+    if (!ref || typeof ref !== 'object') {
+      return '';
+    }
+    const obj = ref as Record<string, unknown>;
+    if (typeof obj.name === 'string') {
+      return obj.name;
+    }
+    return '';
+  }
+
+  /**
    * Extract a plain string from a field that may be a string, an object
    * with a `.value` property (VS Code MarkdownString shape), or undefined.
    */
@@ -366,6 +381,15 @@ export class ChatWatcher {
             };
           }
 
+          // Inline references – convert to backtick-wrapped symbol names
+          if (kind === 'inlineReference') {
+            const name = item.name || this.extractInlineReferenceName(item.inlineReference);
+            if (name) {
+              return { kind: 'markdown' as const, content: `\`${name}\`` };
+            }
+            return null;
+          }
+
           // Thinking blocks
           if (kind === 'thinking') {
             return { kind: 'markdown' as const, content: this.extractString(item.value) };
@@ -392,12 +416,23 @@ export class ChatWatcher {
           return Boolean(t) && t !== '```';
         });
 
+      // Merge consecutive markdown parts into a single part
+      const mergedParts: typeof responseParts = [];
+      for (const part of responseParts) {
+        const prev = mergedParts.at(-1);
+        if (prev?.kind === 'markdown' && part.kind === 'markdown') {
+          prev.content += part.content;
+        } else {
+          mergedParts.push(part);
+        }
+      }
+
       const lastResponse = request.response[request.response.length - 1];
       const isStreaming = lastResponse ? lastResponse.isComplete === false : false;
       return {
         requestId: request.requestId,
         message,
-        responseParts,
+        responseParts: mergedParts,
         isStreaming,
         isCanceled: request.isCanceled ?? false,
         timestamp: new Date(request.timestamp ?? Date.now()).toISOString(),
