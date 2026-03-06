@@ -14,28 +14,30 @@ const UI_ONLY_KINDS = new Set([
  * This is a pure function: no I/O, no side effects.
  */
 export function transformSession(session: VscodeChatSessionFile): ChatSessionUpdate {
-  const requests = session.requests.map((request) => {
-    const message = typeof request.message === 'string' ? request.message : request.message.text;
-    const responseParts = request.response
-      .map(transformResponseItem)
-      // drop parts whose content is empty or just a code fence
-      .filter((part): part is NonNullable<typeof part> => {
-        const t = part?.content.trim();
-        return Boolean(t);
-      });
+  const requests = session.requests
+    .map((request) => {
+      const message = typeof request.message === 'string' ? request.message : request.message.text;
+      const responseParts = request.response
+        .map(transformResponseItem)
+        // drop parts whose content is empty or just a code fence
+        .filter((part): part is NonNullable<typeof part> => {
+          const t = part?.content.trim();
+          return Boolean(t);
+        });
 
-    const mergedParts = mergeConsecutiveMarkdown(responseParts);
+      const mergedParts = mergeConsecutiveMarkdown(responseParts);
 
-    const lastResponse = request.response.at(-1);
-    return {
-      requestId: request.requestId,
-      message,
-      responseParts: mergedParts,
-      isStreaming: lastResponse?.isComplete === false,
-      isCanceled: request.isCanceled ?? false,
-      timestamp: new Date(request.timestamp ?? Date.now()).toISOString(),
-    };
-  });
+      const lastResponse = request.response.at(-1);
+      return {
+        requestId: request.requestId,
+        message,
+        responseParts: mergedParts,
+        isStreaming: lastResponse?.isComplete === false,
+        isCanceled: request.isCanceled ?? false,
+        timestamp: new Date(request.timestamp ?? Date.now()).toISOString(),
+      };
+    })
+    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
   return {
     sessionId: session.sessionId,

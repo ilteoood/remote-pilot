@@ -56,13 +56,22 @@ function parseSessionContent(raw: string): VscodeChatSessionFile | null {
     if ((parsed.kind === 1 || parsed.kind === 2) && session && Array.isArray(parsed.k)) {
       const keyPath = parsed.k as (string | number)[];
 
-      // Special handling for k=['requests']: VS Code writes each new request
-      // as a separate kind=2 patch with the full requests array containing only
-      // that request. We merge by requestId to accumulate the full history.
+      // Special handling for k=['requests']:
+      // kind=1 (set): VS Code replaces the full requests array – honour the new order.
+      // kind=2 (append): VS Code appends new/updated requests – merge by requestId.
       if (keyPath.length === 1 && keyPath[0] === 'requests' && Array.isArray(parsed.v)) {
-        mergeRequests(session, parsed.v as Record<string, unknown>[]);
+        if (parsed.kind === 1) {
+          replaceRequests(session, parsed.v as Record<string, unknown>[]);
+        } else {
+          mergeRequests(session, parsed.v as Record<string, unknown>[]);
+        }
       } else {
-        applyPatch(session as unknown as Record<string, unknown>, keyPath, parsed.v);
+        applyPatch(
+          session as unknown as Record<string, unknown>,
+          keyPath,
+          parsed.v,
+          parsed.kind === 2,
+        );
       }
       continue;
     }
@@ -78,11 +87,13 @@ function parseSessionContent(raw: string): VscodeChatSessionFile | null {
 
 /**
  * Apply a JSONL incremental patch: walk the key path and set the value.
+ * When `isAppend` is true (kind=2), array values are concatenated rather than replaced.
  */
 function applyPatch(
   target: Record<string, unknown>,
   keyPath: (string | number)[],
   value: unknown,
+  isAppend: boolean,
 ): void {
   const keyPathLength = keyPath.length;
   if (!keyPathLength) {
@@ -97,8 +108,29 @@ function applyPatch(
     obj = (obj as Record<string | number, unknown>)[key] as Record<string, unknown>;
   }
   if (obj != null && typeof obj === 'object') {
-    (obj as Record<string | number, unknown>)[keyPath[keyPath.length - 1]] = value;
+    const lastKey = keyPath[keyPathLength - 1];
+    if (isAppend && Array.isArray(value)) {
+      const existing = (obj as Record<string | number, unknown>)[lastKey];
+      if (Array.isArray(existing)) {
+        existing.push(...value);
+        return;
+      }
+    }
+    (obj as Record<string | number, unknown>)[lastKey] = value;
   }
+}
+
+/**
+ * Replace the session's requests array wholesale (kind=1 / set).
+ * Preserves the order provided by VS Code.
+ */
+function replaceRequests(
+  session: VscodeChatSessionFile,
+  incoming: Record<string, unknown>[],
+): void {
+  session.requests = incoming
+    .filter((r) => r.requestId)
+    .map((r) => r as unknown as VscodeChatRequestData);
 }
 
 /**
