@@ -1,7 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { ChatEditingState, ChatSessionUpdate } from '@remote-pilot/shared';
-import * as vscode from 'vscode';
 import type { ChatSessions } from './chatSessions';
 import { parseEditingFile } from './editingParser';
 import { transformSession } from './responseTransformer';
@@ -17,7 +16,6 @@ interface DebounceHandle {
 }
 
 export class ChatWatcher {
-  private readonly disposables: vscode.Disposable[] = [];
   // we may have more than one storage hash for the same workspace (e.g. normal vs dev-host)
   private sessionWatchers: fs.FSWatcher[] = [];
   private editingWatchers: fs.FSWatcher[] = [];
@@ -76,36 +74,6 @@ export class ChatWatcher {
       clearTimeout(handle.timer);
     });
     this.debouncedReads.clear();
-    this.disposables.splice(0).forEach((disposable) => {
-      disposable.dispose();
-    });
-  }
-
-  /**
-   * Returns the paths of the `limit` most recently modified session files in
-   * the given directory, sorted by mtime descending.
-   */
-  private async getRecentSessionFiles(dir: string, limit = 10): Promise<Set<string>> {
-    const files = await fs.promises.readdir(dir);
-    const sessionFiles = files.filter((f) => f.endsWith(SUPPORTED_EXTENSION));
-    const fileStats = await Promise.all(
-      sessionFiles.map(async (file) => {
-        const fullPath = path.join(dir, file);
-        try {
-          const stat = await fs.promises.stat(fullPath);
-          return { fullPath, mtime: stat.mtimeMs };
-        } catch {
-          return null;
-        }
-      }),
-    );
-    return new Set(
-      fileStats
-        .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
-        .sort((a, b) => b.mtime - a.mtime)
-        .slice(0, limit)
-        .map((entry) => entry.fullPath),
-    );
   }
 
   private async watchSessions(): Promise<void> {
@@ -114,17 +82,17 @@ export class ChatWatcher {
         continue;
       }
       try {
-        let recentFiles = await this.getRecentSessionFiles(dir);
+        let recentFiles = await this.chatSessions.retrieveSessionIds();
         const watcher = fs.watch(dir, async (event, filename) => {
           if (!filename?.endsWith(SUPPORTED_EXTENSION)) {
             return;
           }
           if (event === 'rename') {
-            recentFiles = await this.getRecentSessionFiles(dir);
+            recentFiles = await this.chatSessions.retrieveSessionIds();
             await this.chatSessions.emitSessionsList();
           }
           const fullPath = path.join(dir, filename);
-          if (!recentFiles.has(fullPath)) {
+          if (!recentFiles.has(filename.replace(SUPPORTED_EXTENSION, ''))) {
             return;
           }
           this.debounceRead(fullPath, () => this.handleSessionFile(fullPath));
