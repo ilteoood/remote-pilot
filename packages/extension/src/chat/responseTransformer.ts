@@ -17,22 +17,21 @@ export function transformSession(session: VscodeChatSessionFile): ChatSessionUpd
   const requests = session.requests.map((request) => {
     const message = typeof request.message === 'string' ? request.message : request.message.text;
     const responseParts = request.response
-      .map((item) => transformResponseItem(item))
+      .map(transformResponseItem)
       // drop parts whose content is empty or just a code fence
       .filter((part): part is NonNullable<typeof part> => {
         const t = part?.content.trim();
-        return Boolean(t) && t !== '```';
+        return Boolean(t);
       });
 
     const mergedParts = mergeConsecutiveMarkdown(responseParts);
 
-    const lastResponse = request.response[request.response.length - 1];
-    const isStreaming = lastResponse ? lastResponse.isComplete === false : false;
+    const lastResponse = request.response.at(-1);
     return {
       requestId: request.requestId,
       message,
       responseParts: mergedParts,
-      isStreaming,
+      isStreaming: lastResponse?.isComplete === false,
       isCanceled: request.isCanceled ?? false,
       timestamp: new Date(request.timestamp ?? Date.now()).toISOString(),
     };
