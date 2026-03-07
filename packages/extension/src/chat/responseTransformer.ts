@@ -1,4 +1,4 @@
-import type { ChatResponsePart, ChatSessionUpdate } from '@remote-pilot/shared';
+import type { ChatResponsePart, ChatSessionUpdate, ModelInfo } from '@remote-pilot/shared';
 import type { VscodeChatResponseItem, VscodeChatSessionFile } from './types';
 
 const UI_ONLY_KINDS = new Set([
@@ -36,10 +36,20 @@ export function transformSession(session: VscodeChatSessionFile): ChatSessionUpd
     })
     .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
+  const sessionModel = session.inputState?.selectedModel;
+  const selectedModel: ModelInfo | undefined = sessionModel
+    ? {
+        identifier: sessionModel.identifier,
+        name: sessionModel.metadata?.name,
+        family: sessionModel.metadata?.family,
+      }
+    : undefined;
+
   return {
     sessionId: session.sessionId,
     requests,
     hasPendingEdits: Boolean(session.hasPendingEdits),
+    selectedModel,
   };
 }
 

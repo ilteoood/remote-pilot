@@ -1,4 +1,5 @@
 import {
+  AvailableModels,
   ChatEditingState,
   ChatSessionsList,
   ChatSessionUpdate,
@@ -7,6 +8,7 @@ import {
   FileEditCommand,
   RequestSessionCommand,
   SendMessageCommand,
+  SetModelCommand,
   WsMessage,
 } from '@remote-pilot/shared';
 import WebSocket from 'ws';
@@ -19,6 +21,7 @@ import {
   rejectAllEdits,
   rejectFileEdit,
   sendMessage,
+  setModel,
 } from './copilotCommands';
 
 export class WsClient {
@@ -112,6 +115,10 @@ export class WsClient {
     this.send(createMessage('chat_editing_state', state));
   }
 
+  sendAvailableModels(models: AvailableModels): void {
+    this.send(createMessage('available_models', models));
+  }
+
   private startPing(): void {
     this.stopPing();
     this.pingInterval = setInterval(() => {
@@ -184,6 +191,12 @@ export class WsClient {
       }
       case 'new_chat_session': {
         const result = await newChatSession();
+        ack = { requestId: message.id, success: result.success, error: result.error };
+        break;
+      }
+      case 'set_model': {
+        const data = message.data as SetModelCommand;
+        const result = await setModel(data.modelIdentifier);
         ack = { requestId: message.id, success: result.success, error: result.error };
         break;
       }

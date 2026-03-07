@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { ChatSessions, ChatWatcher } from './chat';
 import { disposeOutputChannel, getConfig } from './config';
+import { getAvailableModels } from './copilotCommands';
 import { getPairingCode, isServerRunning, killServer, spawnServer } from './server';
 import { WsClient } from './wsClient';
 
@@ -56,11 +57,16 @@ async function startRemotePilot(): Promise<void> {
     });
 
     // Wire up request_sessions_list: when web client requests the sessions list
-    wsClient.onRequestSessionsList(() => {
+    wsClient.onRequestSessionsList(async () => {
       if (!chatSessions) {
-        return Promise.resolve();
+        return;
       }
-      return chatSessions.emitSessionsList();
+      await chatSessions.emitSessionsList();
+      // Also refresh available models on sessions list request
+      try {
+        const models = await getAvailableModels();
+        wsClient?.sendAvailableModels({ models });
+      } catch {}
     });
     await chatSessions.start();
     await chatWatcher.start();

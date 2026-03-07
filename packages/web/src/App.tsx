@@ -8,8 +8,15 @@ import './styles/global.css';
 
 export const App: React.FC = () => {
   const { t } = useTranslation();
-  const { isConnected, isPaired, extensionStatus, sessionsList, sessionDataMap, send } =
-    useWebSocket();
+  const {
+    isConnected,
+    isPaired,
+    extensionStatus,
+    sessionsList,
+    sessionDataMap,
+    availableModels,
+    send,
+  } = useWebSocket();
 
   const [pairingError, setPairingError] = useState<string | undefined>();
   const [localActiveSessionId, setLocalActiveSessionId] = useState<string | undefined>();
@@ -62,6 +69,10 @@ export const App: React.FC = () => {
     send('continue_iteration', {});
   };
 
+  const handleSetModel = (modelIdentifier: string) => {
+    send('set_model', { modelIdentifier });
+  };
+
   // When user clicks a session, always request fresh data from the extension
   const handleSelectSession = useCallback(
     (id: string) => {
@@ -93,12 +104,14 @@ export const App: React.FC = () => {
       extensionStatus={extensionStatus}
       isConnected={isConnected}
       isPaired={isPaired}
+      availableModels={availableModels}
       onSelectSession={handleSelectSession}
       onNewSession={handleNewSession}
       onSendMessage={handleSendMessage}
       onAcceptAll={handleAcceptAll}
       onRejectAll={handleRejectAll}
       onContinue={handleContinue}
+      onSetModel={handleSetModel}
     />
   );
 };

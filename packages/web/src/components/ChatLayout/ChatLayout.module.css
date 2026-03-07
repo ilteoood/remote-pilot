@@ -64,6 +64,12 @@
   background: var(--bg-panel);
 }
 
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
 .title {
   font-size: 16px;
   margin-left: 40px;

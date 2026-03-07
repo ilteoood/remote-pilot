@@ -1,4 +1,5 @@
 import {
+  AvailableModels,
   ChatSessionsList,
   ChatSessionUpdate,
   createMessage,
@@ -22,6 +23,7 @@ export function useWebSocket() {
   const [sessionsList, setSessionsList] = useState<ChatSessionsList | null>(null);
   // Cache session data keyed by sessionId so switching sessions is instant
   const [sessionDataMap, setSessionDataMap] = useState<Record<string, ChatSessionUpdate>>({});
+  const [availableModels, setAvailableModels] = useState<AvailableModels | null>(null);
 
   const send = useCallback(<T extends WsMessageType>(type: T, data: WsMessageDataMap[T]) => {
     if (socketRef.current?.readyState === WebSocket.OPEN) {
@@ -64,6 +66,9 @@ export function useWebSocket() {
           }));
           break;
         }
+        case 'available_models':
+          setAvailableModels(message.data as AvailableModels);
+          break;
         case 'ping':
           send('pong', {});
           break;
@@ -162,6 +167,7 @@ export function useWebSocket() {
     extensionStatus,
     sessionsList,
     sessionDataMap,
+    availableModels,
     send,
   };
 }

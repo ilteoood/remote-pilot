@@ -32,6 +32,10 @@
     "selectOrStart": "Select a chat or start a new one.",
     "edited": "Edited"
   },
+  "modelSelector": {
+    "label": "Model:",
+    "select": "Select model..."
+  },
   "status": {
     "disconnected": "Disconnected",
     "connectedToExtension": "Connected to Extension",

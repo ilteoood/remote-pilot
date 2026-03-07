@@ -18,6 +18,7 @@ export const extensionToWebTypes: readonly WsMessageType[] = [
   'chat_editing_state',
   'extension_status',
   'command_ack',
+  'available_models',
 ];
 
 export const webToExtensionTypes: readonly WsMessageType[] = [
@@ -31,6 +32,7 @@ export const webToExtensionTypes: readonly WsMessageType[] = [
   'new_chat_session',
   'request_session',
   'request_sessions_list',
+  'set_model',
 ];
 
 export const allTypes = new Set<WsMessageType>([

@@ -1,9 +1,15 @@
-import { ChatSessionsList, ChatSessionUpdate, ExtensionStatus } from '@remote-pilot/shared';
+import {
+  AvailableModels,
+  ChatSessionsList,
+  ChatSessionUpdate,
+  ExtensionStatus,
+} from '@remote-pilot/shared';
 import clsx from 'clsx';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActionBar } from '../ActionBar/ActionBar';
 import { ChatView } from '../ChatView/ChatView';
+import { ModelSelector } from '../ModelSelector/ModelSelector';
 import { SessionList } from '../SessionList/SessionList';
 import { StatusIndicator } from '../StatusIndicator/StatusIndicator';
 import styles from './ChatLayout.module.css';
@@ -15,12 +21,14 @@ interface ChatLayoutProps {
   extensionStatus: ExtensionStatus | null;
   isConnected: boolean;
   isPaired: boolean;
+  availableModels: AvailableModels | null;
   onSelectSession: (id: string) => void;
   onNewSession: () => void;
   onSendMessage: (text: string) => void;
   onAcceptAll: () => void;
   onRejectAll: () => void;
   onContinue: () => void;
+  onSetModel: (modelIdentifier: string) => void;
 }
 
 export const ChatLayout: React.FC<ChatLayoutProps> = ({
@@ -30,12 +38,14 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
   extensionStatus,
   isConnected,
   isPaired,
+  availableModels,
   onSelectSession,
   onNewSession,
   onSendMessage,
   onAcceptAll,
   onRejectAll,
   onContinue,
+  onSetModel,
 }) => {
   const { t } = useTranslation();
   const [showSidebar, setShowSidebar] = useState(false);
@@ -71,9 +81,19 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
       <div className={styles.mainContent}>
         {/* Header */}
         <div className={styles.header}>
-          <h1 className={styles.title}>
-            {activeSessionId ? t('chatLayout.chat') : t('chatLayout.remotePilot')}
-          </h1>
+          <div className={styles.headerLeft}>
+            <h1 className={styles.title}>
+              {activeSessionId ? t('chatLayout.chat') : t('chatLayout.remotePilot')}
+            </h1>
+            {activeSessionId && (
+              <ModelSelector
+                availableModels={availableModels}
+                selectedModel={activeSession?.selectedModel}
+                onSetModel={onSetModel}
+                disabled={!isConnected || !isPaired}
+              />
+            )}
+          </div>
           <StatusIndicator
             isConnected={isConnected}
             isPaired={isPaired}

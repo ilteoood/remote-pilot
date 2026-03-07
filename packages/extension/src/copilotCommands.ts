@@ -1,5 +1,6 @@
 import * as path from 'node:path';
 import { setTimeout } from 'node:timers/promises';
+import type { ModelInfo } from '@remote-pilot/shared';
 import * as vscode from 'vscode';
 
 export interface CommandResult {
@@ -92,5 +93,24 @@ export function cancelRequest(): Promise<CommandResult> {
 export function newChatSession(): Promise<CommandResult> {
   return commandExecutor(async () => {
     await vscode.commands.executeCommand('workbench.action.chat.newChat');
+  });
+}
+
+export async function getAvailableModels(): Promise<ModelInfo[]> {
+  const models = await vscode.lm.selectChatModels();
+  return models
+    .filter((m): m is vscode.LanguageModelChat => m.vendor === 'copilot')
+    .map((m) => ({
+      identifier: m.id,
+      name: m.name,
+      family: m.family,
+    }));
+}
+
+export function setModel(modelIdentifier: string): Promise<CommandResult> {
+  return commandExecutor(async () => {
+    await vscode.commands.executeCommand('workbench.action.chat.selectModel', {
+      modelId: modelIdentifier,
+    });
   });
 }

@@ -40,6 +40,9 @@ export type WsMessageType =
   | 'new_chat_session'
   | 'request_session'
   | 'request_sessions_list'
+  | 'set_model'
+  // Model data (extension → server → web)
+  | 'available_models'
   // Command acknowledgement (extension → server → web)
   | 'command_ack'
   // Connection state
@@ -72,6 +75,10 @@ export interface WsMessageDataMap {
   new_chat_session: EmptyPayload;
   request_session: RequestSessionCommand;
   request_sessions_list: EmptyPayload;
+  set_model: SetModelCommand;
+
+  // Model data
+  available_models: AvailableModels;
 
   // Ack
   command_ack: CommandAck;
@@ -87,6 +94,12 @@ export interface WsMessageDataMap {
 // ----------------------------------------------------------
 
 export type EmptyPayload = Record<string, never>;
+
+export interface ModelInfo {
+  identifier: string;
+  name?: string;
+  family?: string;
+}
 
 /** Web → Server: pair with a code */
 export interface PairRequest {
@@ -121,6 +134,7 @@ export interface ChatSessionUpdate {
   sessionId: string;
   requests: ChatRequest[];
   hasPendingEdits: boolean;
+  selectedModel?: ModelInfo;
 }
 
 export interface ChatRequest {
@@ -181,6 +195,16 @@ export interface FileEditCommand {
 /** Web → Extension: request a specific session's content */
 export interface RequestSessionCommand {
   sessionId: string;
+}
+
+/** Web → Extension: set the chat model */
+export interface SetModelCommand {
+  modelIdentifier: string;
+}
+
+/** Extension → Web: list of available language models */
+export interface AvailableModels {
+  models: ModelInfo[];
 }
 
 /** Extension → Web: acknowledge a command was received and processed */
