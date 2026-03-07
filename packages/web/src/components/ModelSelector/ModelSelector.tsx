@@ -1,23 +1,35 @@
 import type { AvailableModels, ModelInfo } from '@remote-pilot/shared';
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from './ModelSelector.module.css';
 
 interface ModelSelectorProps {
   availableModels: AvailableModels | null;
   selectedModel?: ModelInfo;
-  onSetModel: (modelIdentifier: string) => void;
+  onSetModel: (modelIdentifier: ModelInfo) => void;
   disabled: boolean;
 }
 
-export const ModelSelector: React.FC<ModelSelectorProps> = ({
+export const ModelSelector = ({
   availableModels,
   selectedModel,
   onSetModel,
   disabled,
-}) => {
+}: ModelSelectorProps) => {
   const { t } = useTranslation();
   const models = availableModels?.models ?? [];
+  const [identifier, setIdentifier] = useState<string | undefined>(selectedModel?.identifier);
+
+  const onChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const model = models.find((m) => m.identifier === e.target.value);
+      if (model) {
+        onSetModel(model);
+        setIdentifier(model.identifier);
+      }
+    },
+    [onSetModel, models],
+  );
 
   if (models.length === 0) {
     return null;
@@ -28,14 +40,14 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
       <span className={styles.label}>{t('modelSelector.label')}</span>
       <select
         className={styles.select}
-        value={selectedModel?.identifier}
-        onChange={(e) => onSetModel(e.target.value)}
+        value={identifier}
+        onChange={onChange}
         disabled={disabled}
       >
         {!selectedModel && <option value="">{t('modelSelector.select')}</option>}
         {models.map((model) => (
-          <option key={model.identifier} value={model.identifier}>
-            {model.name || model.identifier}
+          <option key={model.id} value={model.identifier}>
+            {model.name || model.id}
           </option>
         ))}
       </select>

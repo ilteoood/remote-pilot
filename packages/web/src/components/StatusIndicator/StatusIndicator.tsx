@@ -1,6 +1,5 @@
 import { ExtensionStatus } from '@remote-pilot/shared';
 import clsx from 'clsx';
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from './StatusIndicator.module.css';
 
@@ -10,11 +9,11 @@ interface StatusIndicatorProps {
   extensionStatus: ExtensionStatus | null;
 }
 
-export const StatusIndicator: React.FC<StatusIndicatorProps> = ({
+export const StatusIndicator = ({
   isConnected,
   isPaired,
   extensionStatus,
-}) => {
+}: StatusIndicatorProps) => {
   const { t } = useTranslation();
 
   let statusClass = styles.statusDisconnected;

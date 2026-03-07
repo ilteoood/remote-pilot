@@ -196,7 +196,7 @@ export class WsClient {
       }
       case 'set_model': {
         const data = message.data as SetModelCommand;
-        const result = await setModel(data.modelIdentifier);
+        const result = await setModel(data.model);
         ack = { requestId: message.id, success: result.success, error: result.error };
         break;
       }

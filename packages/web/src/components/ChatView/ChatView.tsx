@@ -1,5 +1,5 @@
 import { ChatResponsePart, ChatSessionUpdate } from '@remote-pilot/shared';
-import React, { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { List, ListImperativeAPI, RowComponentProps, useDynamicRowHeight } from 'react-window';
 import { MessageBubble } from '../MessageBubble/MessageBubble';
@@ -30,7 +30,7 @@ interface ChatViewProps {
   session: ChatSessionUpdate | null;
 }
 
-export const ChatView: React.FC<ChatViewProps> = ({ session }) => {
+export const ChatView = ({ session }: ChatViewProps) => {
   const { t } = useTranslation();
   const dynamicRowHeight = useDynamicRowHeight({ defaultRowHeight: 80, key: session?.sessionId });
   const listRef = useRef<ListImperativeAPI | null>(null);

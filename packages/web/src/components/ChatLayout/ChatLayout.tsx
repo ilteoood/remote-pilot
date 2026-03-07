@@ -3,9 +3,10 @@ import {
   ChatSessionsList,
   ChatSessionUpdate,
   ExtensionStatus,
+  ModelInfo,
 } from '@remote-pilot/shared';
 import clsx from 'clsx';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActionBar } from '../ActionBar/ActionBar';
 import { ChatView } from '../ChatView/ChatView';
@@ -28,10 +29,10 @@ interface ChatLayoutProps {
   onAcceptAll: () => void;
   onRejectAll: () => void;
   onContinue: () => void;
-  onSetModel: (modelIdentifier: string) => void;
+  onSetModel: (model: ModelInfo) => void;
 }
 
-export const ChatLayout: React.FC<ChatLayoutProps> = ({
+export const ChatLayout = ({
   sessions,
   activeSession,
   activeSessionId,
@@ -46,7 +47,7 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
   onRejectAll,
   onContinue,
   onSetModel,
-}) => {
+}: ChatLayoutProps) => {
   const { t } = useTranslation();
   const [showSidebar, setShowSidebar] = useState(false);
 
@@ -89,6 +90,7 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
               <ModelSelector
                 availableModels={availableModels}
                 selectedModel={activeSession?.selectedModel}
+                key={`${activeSessionId}-${activeSession?.selectedModel?.identifier}`}
                 onSetModel={onSetModel}
                 disabled={!isConnected || !isPaired}
               />

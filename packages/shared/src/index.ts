@@ -97,8 +97,10 @@ export type EmptyPayload = Record<string, never>;
 
 export interface ModelInfo {
   identifier: string;
-  name?: string;
-  family?: string;
+  id: string;
+  vendor: string;
+  name: string;
+  family: string;
 }
 
 /** Web → Server: pair with a code */
@@ -199,7 +201,7 @@ export interface RequestSessionCommand {
 
 /** Web → Extension: set the chat model */
 export interface SetModelCommand {
-  modelIdentifier: string;
+  model: ModelInfo;
 }
 
 /** Extension → Web: list of available language models */

@@ -10,7 +10,7 @@ interface MessageBubbleProps {
   parts?: ChatResponsePart[];
 }
 
-export const MessageBubble: React.FC<MessageBubbleProps> = ({ userRole, content, parts }) => {
+export const MessageBubble = ({ userRole, content, parts }: MessageBubbleProps) => {
   const isUser = userRole === 'user';
 
   return (

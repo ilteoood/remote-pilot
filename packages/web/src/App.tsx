@@ -1,3 +1,4 @@
+import { ModelInfo } from '@remote-pilot/shared';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from './App.module.css';
@@ -69,8 +70,8 @@ export const App: React.FC = () => {
     send('continue_iteration', {});
   };
 
-  const handleSetModel = (modelIdentifier: string) => {
-    send('set_model', { modelIdentifier });
+  const handleSetModel = (model: ModelInfo) => {
+    send('set_model', { model });
   };
 
   // When user clicks a session, always request fresh data from the extension

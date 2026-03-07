@@ -1,6 +1,5 @@
 import { ChatSessionSummary, ChatSessionsList } from '@remote-pilot/shared';
 import clsx from 'clsx';
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from './SessionList.module.css';
 
@@ -11,12 +10,12 @@ interface SessionListProps {
   onNewSession: () => void;
 }
 
-export const SessionList: React.FC<SessionListProps> = ({
+export const SessionList = ({
   sessions,
   activeSessionId,
   onSelectSession,
   onNewSession,
-}) => {
+}: SessionListProps) => {
   const { t } = useTranslation();
 
   return (
@@ -50,11 +49,13 @@ export const SessionList: React.FC<SessionListProps> = ({
   );
 };
 
-const SessionItem: React.FC<{
+interface SessionItemProps {
   session: ChatSessionSummary;
   isActive: boolean;
   onClick: () => void;
-}> = ({ session, isActive, onClick }) => {
+}
+
+const SessionItem = ({ session, isActive, onClick }: SessionItemProps) => {
   const { t } = useTranslation();
 
   return (

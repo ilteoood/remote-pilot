@@ -10,7 +10,7 @@ interface PairingScreenProps {
 
 const CODE_LENGTH = 6;
 
-export const PairingScreen: React.FC<PairingScreenProps> = ({ onPair, isConnecting, error }) => {
+export const PairingScreen = ({ onPair, isConnecting, error }: PairingScreenProps) => {
   const { t } = useTranslation();
   const [code, setCode] = useState('');
 

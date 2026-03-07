@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import React, { KeyboardEvent, useState } from 'react';
+import { KeyboardEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from './ActionBar.module.css';
 
@@ -12,14 +12,14 @@ interface ActionBarProps {
   disabled: boolean;
 }
 
-export const ActionBar: React.FC<ActionBarProps> = ({
+export const ActionBar = ({
   onSendMessage,
   onAcceptAll,
   onRejectAll,
   onContinue,
   hasPendingEdits,
   disabled,
-}) => {
+}: ActionBarProps) => {
   const { t } = useTranslation();
   const [input, setInput] = useState('');
 

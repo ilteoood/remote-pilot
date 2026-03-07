@@ -100,17 +100,11 @@ export async function getAvailableModels(): Promise<ModelInfo[]> {
   const models = await vscode.lm.selectChatModels();
   return models
     .filter((m): m is vscode.LanguageModelChat => m.vendor === 'copilot')
-    .map((m) => ({
-      identifier: `${m.vendor}/${m.id}`,
-      name: m.name,
-      family: m.family,
-    }));
+    .map((m) => ({ ...m, identifier: `${m.vendor}/${m.id}` }));
 }
 
-export function setModel(modelIdentifier: string): Promise<CommandResult> {
+export function setModel(model: ModelInfo): Promise<CommandResult> {
   return commandExecutor(async () => {
-    await vscode.commands.executeCommand('workbench.action.chat.selectModel', {
-      modelId: modelIdentifier,
-    });
+    await vscode.commands.executeCommand('workbench.action.chat.changeModel', model);
   });
 }
