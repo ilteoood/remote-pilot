@@ -163,13 +163,17 @@ function stripOrphanFences(parts: ChatResponsePart[]): ChatResponsePart[] {
 }
 
 /**
- * Deduplicate consecutive text_edit parts that reference the same file path.
- * VS Code may emit multiple textEditGroup items for the same file as edits stream in.
+ * Deduplicate text_edit parts that reference the same file path within each
+ * tool-invocation group. A tool_invocation part resets the seen set so that the
+ * same file edited by a later tool call (e.g. a revert) is preserved.
  */
 function deduplicateTextEdits(parts: ChatResponsePart[]): ChatResponsePart[] {
   const result: ChatResponsePart[] = [];
-  const seenEditPaths = new Set<string>();
+  let seenEditPaths = new Set<string>();
   for (const part of parts) {
+    if (part.kind === 'tool_invocation') {
+      seenEditPaths = new Set<string>();
+    }
     if (part.kind === 'text_edit' && part.filePath) {
       if (seenEditPaths.has(part.filePath)) continue;
       seenEditPaths.add(part.filePath);

@@ -71,6 +71,7 @@ function parseSessionContent(raw: string): VscodeChatSessionFile | null {
           keyPath,
           parsed.v,
           parsed.kind === 2,
+          typeof parsed.i === 'number' ? (parsed.i as number) : undefined,
         );
       }
       continue;
@@ -94,6 +95,7 @@ function applyPatch(
   keyPath: (string | number)[],
   value: unknown,
   isAppend: boolean,
+  spliceIndex: number = -1,
 ): void {
   const keyPathLength = keyPath.length;
   if (!keyPathLength) {
@@ -112,7 +114,11 @@ function applyPatch(
     if (isAppend && Array.isArray(value)) {
       const existing = (obj as Record<string | number, unknown>)[lastKey];
       if (Array.isArray(existing)) {
-        existing.push(...value);
+        if (spliceIndex < existing.length) {
+          existing.splice(spliceIndex, existing.length - spliceIndex, ...value);
+        } else {
+          existing.push(...value);
+        }
         return;
       }
     }
