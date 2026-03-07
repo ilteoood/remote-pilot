@@ -8,12 +8,14 @@ export default defineConfig({
   clean: true,
   sourcemap: true,
   dts: true,
-  noExternal: [
-    '@remote-pilot/shared',
-    'fastify',
-    '@fastify/static',
-    '@fastify/websocket',
-    'ws',
-    'portfinder',
-  ],
+  deps: {
+    alwaysBundle: [
+      '@remote-pilot/shared',
+      'fastify',
+      '@fastify/static',
+      '@fastify/websocket',
+      'ws',
+      'portfinder',
+    ],
+  },
 });

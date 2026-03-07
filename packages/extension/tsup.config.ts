@@ -7,6 +7,8 @@ export default defineConfig({
   outDir: 'dist',
   clean: true,
   sourcemap: true,
-  external: ['vscode'],
-  noExternal: ['@remote-pilot/shared', 'ws', 'sql.js'],
+  deps: {
+    neverBundle: ['vscode'],
+    alwaysBundle: ['@remote-pilot/shared', 'ws', 'sql.js'],
+  },
 });

@@ -13,9 +13,9 @@
     "vsix": "pnpm --filter remote-pilot package"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.4",
-    "turbo": "^2.5.0",
-    "typescript": "^5.8.0"
+    "@biomejs/biome": "^2.4.6",
+    "turbo": "^2.8.14",
+    "typescript": "^5.9.3"
   },
   "packageManager": "pnpm@10.25.0"
 }

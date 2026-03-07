@@ -12,13 +12,9 @@ let serverProcess: ChildProcess | null = null;
 let serverInfo: ServerInfo | null = null;
 
 function resolveServerEntry(): string {
-  // In dev (monorepo): extension is at packages/extension/dist/extension.js
-  // Server entry is at packages/server/dist/index.js
-  // __dirname = packages/extension/dist → ../../server/dist/index.js
-  const monorepoPath = path.resolve(__dirname, '../../server/dist/index.js');
+  const monorepoPath = path.resolve(__dirname, '../../server/dist/index.cjs');
 
-  // In packaged VSIX: server is copied into dist/server/index.js
-  const bundledPath = path.resolve(__dirname, 'server/index.js');
+  const bundledPath = path.resolve(__dirname, 'server/index.cjs');
 
   try {
     require.resolve(bundledPath);
