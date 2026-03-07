@@ -28,7 +28,9 @@ export const ResponsePart: React.FC<ResponsePartProps> = ({ part }) => {
       <div className={styles.textEdit}>
         <span className={styles.textEditIcon}>✎</span>
         <span className={styles.textEditLabel}>Edited</span>
-        <span className={styles.textEditFile} title={part.filePath}>{fileName}</span>
+        <span className={styles.textEditFile} title={part.filePath}>
+          {fileName}
+        </span>
       </div>
     );
   }

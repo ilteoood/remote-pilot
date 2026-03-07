@@ -83,7 +83,7 @@ export function useWebSocket() {
     const storedToken = sessionStorage.getItem('auth_token');
 
     // If we have a stored token, pass it in the URL so the server auto-pairs us
-    let wsUrl = `ws://${window.location.hostname}:${port}?role=web`;
+    let wsUrl = `ws://${window.location.hostname}:${port}/ws?role=web`;
     if (storedToken) {
       wsUrl += `&token=${encodeURIComponent(storedToken)}`;
     }

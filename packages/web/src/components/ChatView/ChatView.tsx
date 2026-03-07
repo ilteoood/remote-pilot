@@ -35,19 +35,20 @@ export const ChatView: React.FC<ChatViewProps> = ({ session }) => {
   const dynamicRowHeight = useDynamicRowHeight({ defaultRowHeight: 80, key: session?.sessionId });
   const listRef = useRef<ListImperativeAPI | null>(null);
 
-  const rowProps = useMemo<{items: RowItem[]}>(() => {
-    const items = session?.requests.flatMap((req) => {
-      const rows: RowItem[] = [{ type: 'user', requestId: req.requestId, message: req.message }];
-      if (req.responseParts.length > 0 || req.isStreaming) {
-        rows.push({
-          type: 'assistant',
-          requestId: req.requestId,
-          parts: req.responseParts,
-          isStreaming: req.isStreaming,
-        });
-      }
-      return rows;
-    }) ?? [];
+  const rowProps = useMemo<{ items: RowItem[] }>(() => {
+    const items =
+      session?.requests.flatMap((req) => {
+        const rows: RowItem[] = [{ type: 'user', requestId: req.requestId, message: req.message }];
+        if (req.responseParts.length > 0 || req.isStreaming) {
+          rows.push({
+            type: 'assistant',
+            requestId: req.requestId,
+            parts: req.responseParts,
+            isStreaming: req.isStreaming,
+          });
+        }
+        return rows;
+      }) ?? [];
     return { items };
   }, [session]);
 

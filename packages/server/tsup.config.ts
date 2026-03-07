@@ -8,5 +8,12 @@ export default defineConfig({
   clean: true,
   sourcemap: true,
   dts: true,
-  noExternal: ['@remote-pilot/shared', 'express', 'ws', 'portfinder'],
+  noExternal: [
+    '@remote-pilot/shared',
+    'fastify',
+    '@fastify/static',
+    '@fastify/websocket',
+    'ws',
+    'portfinder',
+  ],
 });

@@ -56,7 +56,7 @@
   "scripts": {
     "build": "tsdown --config tsup.config.ts && node -e \"require('fs').cpSync(require.resolve('sql.js/dist/sql-wasm.wasm'), 'dist/sql-wasm.wasm')\"",
     "dev": "tsdown --config tsup.config.ts --watch",
-    "prepackage": "mkdir -p dist/server dist/web && cp ../server/dist/index.js dist/server/index.js && cp -r ../web/dist/* dist/web/",
+    "prepackage": "mkdir -p dist/server dist/web && cp ../server/dist/index.cjs dist/server/index.js && cp -r ../web/dist/* dist/web/",
     "package": "vsce package --no-dependencies",
     "clean": "rm -rf dist"
   },

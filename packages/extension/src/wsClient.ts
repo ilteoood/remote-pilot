@@ -43,7 +43,7 @@ export class WsClient {
     }
     this.clearReconnect();
 
-    const url = `ws://localhost:${this.serverPort}?role=${encodeURIComponent(this.role)}&token=${encodeURIComponent(this.serverToken)}`;
+    const url = `ws://localhost:${this.serverPort}/ws?role=${encodeURIComponent(this.role)}&token=${encodeURIComponent(this.serverToken)}`;
     this.socket = new WebSocket(url);
 
     this.socket.on('open', () => {

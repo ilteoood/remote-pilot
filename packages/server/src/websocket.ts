@@ -1,6 +1,7 @@
-import http, { IncomingMessage } from 'node:http';
+import fastifyWebSocket from '@fastify/websocket';
 import { createMessage } from '@remote-pilot/shared';
-import { WebSocket, WebSocketServer } from 'ws';
+import type { FastifyInstance } from 'fastify';
+import { WebSocket } from 'ws';
 import {
   addSocket,
   createClientInfo,
@@ -44,77 +45,72 @@ function isAllowedOrigin(origin: string | undefined): boolean {
   );
 }
 
-export function createWebSocketServer(server: http.Server): WebSocketServer {
-  const wss = new WebSocketServer({ server });
+export async function registerWebSocket(app: FastifyInstance): Promise<void> {
+  await app.register(fastifyWebSocket);
 
-  wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
-    if (!isAllowedOrigin(req.headers.origin)) {
-      ws.close(1008, 'Origin not allowed');
+  app.get('/ws', { websocket: true }, (socket, request) => {
+    if (!isAllowedOrigin(request.headers.origin)) {
+      socket.close(1008, 'Origin not allowed');
       return;
     }
 
-    const url = new URL(req.url ?? '', `http://${req.headers.host ?? 'localhost'}`);
+    const url = new URL(request.url, `http://${request.headers.host ?? 'localhost'}`);
     const role = url.searchParams.get('role') as ClientRole | null;
     const token = url.searchParams.get('token') ?? undefined;
 
     if (role === 'extension') {
       if (!token || token !== SERVER_TOKEN) {
-        ws.close(1008, 'Invalid token');
+        socket.close(1008, 'Invalid token');
         return;
       }
       const extensionSocket = getExtensionSocket();
       if (extensionSocket && extensionSocket.readyState === WebSocket.OPEN) {
-        ws.close(1008, 'Extension already connected');
+        socket.close(1008, 'Extension already connected');
         return;
       }
-      setExtensionSocket(ws);
-      setClientInfo(ws, createClientInfo('extension', true, token));
-      // Notify web clients that extension is now connected
+      setExtensionSocket(socket);
+      setClientInfo(socket, createClientInfo('extension', true, token));
       broadcastToWeb(createMessage('extension_status', { connected: true }) as never);
     } else if (role === 'web') {
       if (token) {
         if (!hasAuthToken(token)) {
-          ws.close(1008, 'Invalid token');
+          socket.close(1008, 'Invalid token');
           return;
         }
-        setClientInfo(ws, createClientInfo('web', true, token));
-        // Send current extension status on reconnect
+        setClientInfo(socket, createClientInfo('web', true, token));
         const statusMsg = createMessage('extension_status', { connected: isExtensionConnected() });
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify(statusMsg));
+        if (socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify(statusMsg));
         }
       } else {
-        setClientInfo(ws, createClientInfo('web', false));
+        setClientInfo(socket, createClientInfo('web', false));
       }
     } else {
-      ws.close(1008, 'Invalid role');
+      socket.close(1008, 'Invalid role');
       return;
     }
 
-    addSocket(ws);
+    addSocket(socket);
 
-    ws.on('message', (data) => {
+    socket.on('message', (data) => {
       const message = parseMessage(data);
       if (!message) return;
 
-      handleMessage(ws, message);
+      handleMessage(socket, message);
     });
 
-    ws.on('close', () => {
-      const info = getClientInfo(ws);
-      removeSocket(ws);
-      // If the extension disconnected, notify web clients
+    socket.on('close', () => {
+      const info = getClientInfo(socket);
+      removeSocket(socket);
       if (info?.role === 'extension') {
         broadcastToWeb(createMessage('extension_status', { connected: false }) as never);
       }
     });
 
-    ws.on('error', (error) => {
+    socket.on('error', (error) => {
       console.warn('WebSocket error:', error);
     });
   });
-
-  return wss;
 }
 
 export function closeAllSockets(): void {

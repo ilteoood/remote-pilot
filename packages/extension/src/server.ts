@@ -3,9 +3,9 @@ import * as path from 'node:path';
 import { getConfig, getOutputChannel } from './config';
 
 interface ServerInfo {
-    token: string;
-    port: number;
-    pairingCode: string;
+  token: string;
+  port: number;
+  pairingCode: string;
 }
 
 let serverProcess: ChildProcess | null = null;
@@ -134,5 +134,5 @@ export function killServer(): void {
 }
 
 export function isServerRunning(): boolean {
-    return Boolean(serverProcess && serverInfo);
+  return Boolean(serverProcess && serverInfo);
 }

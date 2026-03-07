@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import express from 'express';
+import fastifyStatic from '@fastify/static';
+import type { FastifyInstance } from 'fastify';
 import { isExtensionConnected } from './client.js';
 
 function resolveWebDistPath(): string {
@@ -14,17 +15,14 @@ function resolveWebDistPath(): string {
   return monorepoPath;
 }
 
-export function createHttpApp(): express.Express {
-  const app = express();
+export async function registerHttpRoutes(app: FastifyInstance): Promise<void> {
+  app.get('/health', async () => ({
+    status: 'ok',
+    extensionConnected: isExtensionConnected(),
+  }));
 
-  app.get('/health', (_req, res) => {
-    res.json({
-      status: 'ok',
-      extensionConnected: isExtensionConnected(),
-    });
+  await app.register(fastifyStatic, {
+    root: resolveWebDistPath(),
+    prefix: '/',
   });
-
-  app.use('/', express.static(resolveWebDistPath()));
-
-  return app;
 }
