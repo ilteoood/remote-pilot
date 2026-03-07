@@ -6,4 +6,13 @@ export default defineConfig({
   build: {
     outDir: 'dist',
   },
+  server: {
+    proxy: {
+      '/ws': {
+        target: 'http://localhost:3847',
+        changeOrigin: true,
+        ws: true,
+      },
+    },
+  },
 });
