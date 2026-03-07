@@ -59,9 +59,7 @@ export class WsClient {
           this.send(createMessage('pong', {}));
           return;
         }
-        this.handleIncoming(message).catch(() => {
-          return;
-        });
+        this.handleIncoming(message).catch(() => {});
       } catch {
         return;
       }

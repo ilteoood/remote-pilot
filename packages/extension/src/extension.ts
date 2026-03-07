@@ -1,36 +1,13 @@
-import { ChildProcess, fork } from 'node:child_process';
-import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { ChatSessions, ChatWatcher } from './chat';
+import { disposeOutputChannel, getConfig } from './config';
+import { getPairingCode, isServerRunning, killServer, spawnServer } from './server';
 import { WsClient } from './wsClient';
-
-interface ServerInfo {
-  token: string;
-  port: number;
-  pairingCode: string;
-}
 
 let statusBar: vscode.StatusBarItem | null = null;
 let wsClient: WsClient | null = null;
 let chatSessions: ChatSessions | null = null;
 let chatWatcher: ChatWatcher | null = null;
-let serverProcess: ChildProcess | null = null;
-let serverInfo: ServerInfo | null = null;
-let outputChannel: vscode.OutputChannel | null = null;
-
-function getConfig() {
-  const config = vscode.workspace.getConfiguration('remotePilot');
-  return {
-    serverPort: config.get<number>('serverPort', 3847),
-    autoStart: config.get<boolean>('autoStart', false),
-    allowLan: config.get<boolean>('allowLan', false),
-  };
-}
-
-function getOutputChannel(): vscode.OutputChannel {
-  outputChannel ??= vscode.window.createOutputChannel('Remote Pilot');
-  return outputChannel;
-}
 
 function ensureStatusBar(): vscode.StatusBarItem {
   if (!statusBar) {
@@ -47,125 +24,8 @@ function updateStatus(connected: boolean): void {
   bar.text = connected ? '$(plug) Remote Pilot' : '$(circle-slash) Remote Pilot';
 }
 
-function resolveServerEntry(): string {
-  // In dev (monorepo): extension is at packages/extension/dist/extension.js
-  // Server entry is at packages/server/dist/index.js
-  // __dirname = packages/extension/dist → ../../server/dist/index.js
-  const monorepoPath = path.resolve(__dirname, '../../server/dist/index.js');
-
-  // In packaged VSIX: server is copied into dist/server/index.js
-  const bundledPath = path.resolve(__dirname, 'server/index.js');
-
-  try {
-    require.resolve(bundledPath);
-    return bundledPath;
-  } catch {
-    return monorepoPath;
-  }
-}
-
-function spawnServer(): Promise<ServerInfo> {
-  return new Promise((resolve, reject) => {
-    const { serverPort, allowLan } = getConfig();
-    const serverEntry = resolveServerEntry();
-    const channel = getOutputChannel();
-
-    const env: Record<string, string> = {
-      ...(process.env as Record<string, string>),
-      REMOTE_PILOT_PORT: String(serverPort),
-    };
-    if (allowLan) {
-      env.REMOTE_PILOT_HOST = '0.0.0.0';
-    }
-
-    channel.appendLine(`Starting server: ${serverEntry}`);
-    channel.appendLine(`Port: ${serverPort}, LAN: ${allowLan}`);
-
-    const serverDir = path.dirname(path.dirname(serverEntry));
-    const child = fork(serverEntry, [], {
-      env,
-      cwd: serverDir,
-      stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
-      silent: true,
-    });
-
-    serverProcess = child;
-
-    const info: Partial<ServerInfo> = {};
-    let settled = false;
-
-    const timeout = setTimeout(() => {
-      if (!settled) {
-        settled = true;
-        reject(new Error('Server did not become ready within 10 seconds'));
-      }
-    }, 10_000);
-
-    const handleStdout = (data: Buffer) => {
-      const lines = data.toString().split('\n');
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed) continue;
-
-        channel.appendLine(trimmed);
-
-        const tokenMatch = trimmed.match(/^REMOTE_PILOT_TOKEN=(.+)$/);
-        if (tokenMatch) {
-          info.token = tokenMatch[1];
-        }
-        const portMatch = trimmed.match(/^REMOTE_PILOT_PORT=(\d+)$/);
-        if (portMatch) {
-          info.port = Number(portMatch[1]);
-        }
-        const pairingMatch = trimmed.match(/^REMOTE_PILOT_PAIRING=(\d+)$/);
-        if (pairingMatch) {
-          info.pairingCode = pairingMatch[1];
-        }
-        if (trimmed === 'REMOTE_PILOT_READY=true' && info.token && info.port && info.pairingCode) {
-          if (!settled) {
-            settled = true;
-            clearTimeout(timeout);
-            resolve(info as ServerInfo);
-          }
-        }
-      }
-    };
-
-    child.stdout?.on('data', handleStdout);
-    child.stderr?.on('data', (data: Buffer) => {
-      channel.appendLine(`[stderr] ${data.toString().trim()}`);
-    });
-
-    child.on('error', (err) => {
-      channel.appendLine(`Server process error: ${err.message}`);
-      if (!settled) {
-        settled = true;
-        clearTimeout(timeout);
-        reject(err);
-      }
-    });
-
-    child.on('exit', (code) => {
-      channel.appendLine(`Server process exited with code ${code}`);
-      serverProcess = null;
-      serverInfo = null;
-      if (!settled) {
-        settled = true;
-        clearTimeout(timeout);
-        reject(new Error(`Server exited with code ${code}`));
-      }
-    });
-  });
-}
-
-function killServer(): void {
-  serverProcess?.kill('SIGTERM');
-  serverProcess = null;
-  serverInfo = null;
-}
-
 async function startRemotePilot(): Promise<void> {
-  if (serverProcess && serverInfo) {
+  if (isServerRunning()) {
     vscode.window.showInformationMessage('Remote Pilot is already running.');
     return;
   }
@@ -175,7 +35,7 @@ async function startRemotePilot(): Promise<void> {
     const bar = ensureStatusBar();
     bar.text = '$(loading~spin) Remote Pilot';
 
-    serverInfo = await spawnServer();
+    const serverInfo = await spawnServer();
     wsClient = new WsClient(serverInfo.port, serverInfo.token);
     wsClient.connect();
     chatSessions = new ChatSessions((list) => wsClient?.sendChatSessionsList(list));
@@ -247,10 +107,11 @@ export function activate(context: vscode.ExtensionContext): void {
   const showPairingCodeCommand = vscode.commands.registerCommand(
     'remote-pilot.showPairingCode',
     async () => {
-      if (serverInfo) {
-        await vscode.env.clipboard.writeText(serverInfo.pairingCode);
+      const pairintCode = getPairingCode();
+      if (pairintCode) {
+        await vscode.env.clipboard.writeText(pairintCode);
         vscode.window.showInformationMessage(
-          `Remote Pilot pairing code: ${serverInfo.pairingCode} (copied to clipboard)`,
+          `Remote Pilot pairing code: ${pairintCode} (copied to clipboard)`,
         );
       } else {
         vscode.window.showWarningMessage('Remote Pilot is not running. Start it first.');
@@ -271,8 +132,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
 export function deactivate(): void {
   stopRemotePilot();
-  outputChannel?.dispose();
-  outputChannel = null;
+  disposeOutputChannel();
   statusBar?.dispose();
   statusBar = null;
 }
