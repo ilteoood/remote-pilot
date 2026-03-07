@@ -101,7 +101,7 @@ export async function getAvailableModels(): Promise<ModelInfo[]> {
   return models
     .filter((m): m is vscode.LanguageModelChat => m.vendor === 'copilot')
     .map((m) => ({
-      identifier: m.id,
+      identifier: `${m.vendor}/${m.id}`,
       name: m.name,
       family: m.family,
     }));
