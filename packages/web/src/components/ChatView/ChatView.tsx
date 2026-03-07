@@ -71,6 +71,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ session }) => {
 
   return (
     <List
+      key={session?.sessionId}
       className={styles.container}
       rowComponent={ChatRow}
       rowCount={rowProps.items.length}
