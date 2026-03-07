@@ -1,5 +1,6 @@
 import { ChatResponsePart } from '@remote-pilot/shared';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ToolInvocation } from '../ToolInvocation/ToolInvocation';
@@ -10,6 +11,7 @@ interface ResponsePartProps {
 }
 
 export const ResponsePart: React.FC<ResponsePartProps> = ({ part }) => {
+  const { t } = useTranslation();
   if (part.kind === 'markdown') {
     return (
       <div className="markdown-body">
@@ -27,7 +29,7 @@ export const ResponsePart: React.FC<ResponsePartProps> = ({ part }) => {
     return (
       <div className={styles.textEdit}>
         <span className={styles.textEditIcon}>✎</span>
-        <span className={styles.textEditLabel}>Edited</span>
+        <span className={styles.textEditLabel}>{t('chatView.edited')}</span>
         <span className={styles.textEditFile} title={part.filePath}>
           {fileName}
         </span>

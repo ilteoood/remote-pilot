@@ -29,7 +29,8 @@
   },
   "chatView": {
     "noSession": "No Session Selected",
-    "selectOrStart": "Select a chat or start a new one."
+    "selectOrStart": "Select a chat or start a new one.",
+    "edited": "Edited"
   },
   "status": {
     "disconnected": "Disconnected",
