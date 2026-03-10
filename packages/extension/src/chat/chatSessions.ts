@@ -20,17 +20,17 @@ export class ChatSessions {
   private sqlJsPromise: ReturnType<typeof initSqlJs> = initSqlJs({
     locateFile: (file) => path.join(__dirname, file),
   });
+  private workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri;
 
   constructor(private onSessionsList?: (list: ChatSessionsList) => void) {}
 
   public async start() {
-    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri;
-    if (!workspaceRoot) {
+    if (!this.workspaceRoot) {
       return;
     }
 
     const storageRoot = getWorkspaceStorageRoot();
-    const workspaceHashes = await findWorkspaceHashes(storageRoot, workspaceRoot.toString());
+    const workspaceHashes = await findWorkspaceHashes(storageRoot, this.workspaceRoot.toString());
     if (workspaceHashes.length === 0) {
       return;
     }
@@ -89,13 +89,12 @@ export class ChatSessions {
       return;
     }
     try {
-      const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri;
-      if (!workspaceRoot) {
+      if (!this.workspaceRoot) {
         return;
       }
       const list: ChatSessionsList = {
-        workspaceName: path.basename(workspaceRoot.fsPath),
-        workspacePath: workspaceRoot.fsPath,
+        workspaceName: path.basename(this.workspaceRoot.fsPath),
+        workspacePath: this.workspaceRoot.fsPath,
         sessions: await this.retrieveSessionsSummary(),
       };
       console.log(`[ChatWatcher] emitting sessions list (${list.sessions.length} sessions)`);
