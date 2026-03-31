@@ -14,7 +14,7 @@
     "@fastify/static": "^9.0.0",
     "@fastify/websocket": "^11.2.0",
     "@remote-pilot/shared": "workspace:*",
-    "fastify": "^5.8.2",
+    "fastify": "^5.8.3",
     "portfinder": "^1.0.38",
     "ws": "^8.19.0"
   },
