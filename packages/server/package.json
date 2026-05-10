@@ -11,7 +11,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@fastify/static": "^9.0.0",
+    "@fastify/static": "^9.1.1",
     "@fastify/websocket": "^11.2.0",
     "@remote-pilot/shared": "workspace:*",
     "fastify": "^5.8.5",
